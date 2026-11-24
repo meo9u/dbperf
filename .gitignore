@@ -1,0 +1,8 @@
+.env
+
+# Phase 3 seeding: load-ready data (mysql/, mongodb/, manifest.json)
+seed/data/*
+
+# Python bytecode
+__pycache__/
+*.pyc

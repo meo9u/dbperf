@@ -1,0 +1,333 @@
+services:
+  mysql:
+    image: mysql:9.7.2
+    container_name: dbperf-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set in .env}
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./schema/mysql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      # secure_file_priv directory, shared with seed-mysql, which stages the seed CSVs here
+      # for server-side LOAD DATA INFILE (secure_file_priv stays at its default).
+      - mysql_files:/var/lib/mysql-files
+    cpus: "2"
+    mem_limit: "4g"
+    healthcheck:
+      test: ["CMD-SHELL", "mysql -h localhost -uroot -p\"$$MYSQL_ROOT_PASSWORD\" -e 'SELECT 1' --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - dbperf-net
+
+  mongodb:
+    image: mongo:8.0.32
+    container_name: dbperf-mongodb
+    restart: unless-stopped
+    command: ["--replSet", "rs0", "--bind_ip_all", "--keyFile", "/etc/mongo-keyfile/mongo-keyfile"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?MONGO_ROOT_USERNAME must be set in .env}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD must be set in .env}
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_keyfile:/etc/mongo-keyfile:ro
+    cpus: "2"
+    mem_limit: "4g"
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet -u \"$$MONGO_INITDB_ROOT_USERNAME\" -p \"$$MONGO_INITDB_ROOT_PASSWORD\" --authenticationDatabase admin --eval \"db.adminCommand('ping')\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      mongodb-keyfile-init:
+        condition: service_completed_successfully
+    networks:
+      - dbperf-net
+
+  # Internal auth keyfile for the mongodb replica set. mongod requires a
+  # keyFile for internal cluster auth whenever authorization is enabled
+  # together with --replSet, even for a single-node replica set.
+  mongodb-keyfile-init:
+    image: mongo:8.0.32
+    container_name: dbperf-mongodb-keyfile-init
+    restart: "no"
+    entrypoint: ["bash", "-c"]
+    command:
+      - |
+        set -e
+        KEYFILE=/keyfile/mongo-keyfile
+        if [ ! -f "$$KEYFILE" ]; then
+          openssl rand -base64 756 > "$$KEYFILE"
+        fi
+        chmod 400 "$$KEYFILE"
+        chown mongodb:mongodb "$$KEYFILE"
+    volumes:
+      - mongodb_keyfile:/keyfile
+    networks:
+      - dbperf-net
+
+  # Single-node replica set, required to unlock MongoDB's multi-document
+  # transaction API for a fair comparison with InnoDB in later phases.
+  # Not a HA replication setup (one node, no failover).
+  mongodb-init:
+    image: mongo:8.0.32
+    container_name: dbperf-mongodb-init
+    restart: "no"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      MONGO_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?MONGO_ROOT_USERNAME must be set in .env}
+      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD must be set in .env}
+    entrypoint: ["bash", "-c"]
+    command:
+      - |
+        mongosh --host mongodb --quiet -u "$$MONGO_ROOT_USERNAME" -p "$$MONGO_ROOT_PASSWORD" --authenticationDatabase admin --eval "
+          try {
+            rs.status();
+            print('Replica set already initialized');
+          } catch (e) {
+            rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'mongodb:27017'}]});
+            print('Replica set initiated');
+          }
+        "
+    networks:
+      - dbperf-net
+
+  # Applies schema/mongodb/01-collections.js (validators) and 02-indexes.js
+  # (unique indexes) once the replica set has a PRIMARY. Runs on every `up` and
+  # is idempotent: collMod/createIndex with unchanged definitions are no-ops.
+  # It never drops anything, so an index removed from 02-indexes.js stays in an
+  # existing database until it is dropped by hand.
+  mongodb-schema-init:
+    image: mongo:8.0.32
+    container_name: dbperf-mongodb-schema-init
+    restart: "no"
+    depends_on:
+      mongodb-init:
+        condition: service_completed_successfully
+    environment:
+      MONGO_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?MONGO_ROOT_USERNAME must be set in .env}
+      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD must be set in .env}
+    volumes:
+      - ./schema/mongodb:/schema:ro
+    entrypoint: ["bash", "-c"]
+    command:
+      - |
+        set -e
+        ms() {
+          mongosh --host mongodb --quiet -u "$$MONGO_ROOT_USERNAME" -p "$$MONGO_ROOT_PASSWORD" --authenticationDatabase admin "$$@"
+        }
+        # rs.initiate() returns before the node becomes PRIMARY; wait for it.
+        for i in $$(seq 1 60); do
+          if ms --eval "if (!db.hello().isWritablePrimary) quit(1)" >/dev/null 2>&1; then break; fi
+          if [ "$$i" = 60 ]; then echo "PRIMARY not elected after 60s" >&2; exit 1; fi
+          sleep 1
+        done
+        ms --file /schema/01-collections.js
+        ms --file /schema/02-indexes.js
+    networks:
+      - dbperf-net
+
+  # Custom k6 binary with direct MySQL and MongoDB drivers. Run on demand:
+  # docker compose --profile loadtest run --rm k6 run /scripts/<scenario>.js
+  # Scenarios live in benchmark/scenarios/ (read-only); write summaries to /results,
+  # e.g. --summary-export=/results/baseline/<name>.json (host: benchmark/results/).
+  # MYSQL_DSN / MONGO_URI embed the passwords verbatim: a password containing
+  # @ : / or % must be URL-encoded in .env or the connection string breaks.
+  # The CPU/memory cap keeps the load generator from starving the two databases
+  # (each capped at 2 CPUs / 4g); record it with the benchmark results.
+  k6:
+    build:
+      context: ./infra/k6
+      dockerfile: Dockerfile
+    image: dbperf-k6:local
+    container_name: dbperf-k6
+    profiles: ["loadtest"]
+    entrypoint: ["/usr/bin/k6"]
+    cpus: "2"
+    mem_limit: "2g"
+    volumes:
+      - ./benchmark/scenarios:/scripts:ro
+      - ./benchmark/results:/results
+    environment:
+      MYSQL_DSN: "root:${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set in .env}@tcp(mysql:3306)/dbperf"
+      MONGO_URI: "mongodb://${MONGO_ROOT_USERNAME:?MONGO_ROOT_USERNAME must be set in .env}:${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD must be set in .env}@mongodb:27017/?authSource=admin&replicaSet=rs0"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mongodb-schema-init:
+        condition: service_completed_successfully
+    networks:
+      - dbperf-net
+
+  # Monitoring stack (prometheus, exporters, grafana) is temporarily disabled.
+  # Uncomment this block and the prometheus_data/grafana_data volumes to restore it.
+#   prometheus:
+#     image: prom/prometheus:v3.15.0
+#     container_name: dbperf-prometheus
+#     restart: unless-stopped
+#     volumes:
+#       - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+#       - prometheus_data:/prometheus
+#     ports:
+#       - "127.0.0.1:9090:9090"
+#     networks:
+#       - dbperf-net
+#
+#   mysqld-exporter:
+#     image: prom/mysqld-exporter:v0.19.0
+#     container_name: dbperf-mysqld-exporter
+#     restart: unless-stopped
+#     environment:
+#       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set in .env}
+#     entrypoint: ["sh", "-c"]
+#     # mysqld_exporter >= 0.15 reads credentials from a .my.cnf file instead of
+#     # DATA_SOURCE_NAME; generate it at runtime so the password never touches disk in the repo.
+#     command:
+#       - |
+#         cat > /tmp/.my.cnf <<EOF
+#         [client]
+#         user=root
+#         password=$$MYSQL_ROOT_PASSWORD
+#         host=mysql
+#         port=3306
+#         EOF
+#         exec /bin/mysqld_exporter --config.my-cnf=/tmp/.my.cnf
+#     ports:
+#       - "127.0.0.1:9104:9104"
+#     depends_on:
+#       mysql:
+#         condition: service_healthy
+#     networks:
+#       - dbperf-net
+#
+#   mongodb-exporter:
+#     image: percona/mongodb_exporter:0.53.0
+#     container_name: dbperf-mongodb-exporter
+#     restart: unless-stopped
+#     environment:
+#       MONGODB_URI: "mongodb://${MONGO_ROOT_USERNAME:?MONGO_ROOT_USERNAME must be set in .env}:${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD must be set in .env}@mongodb:27017/admin?replicaSet=rs0&directConnection=true"
+#     ports:
+#       - "127.0.0.1:9216:9216"
+#     depends_on:
+#       - mongodb-init
+#     networks:
+#       - dbperf-net
+#
+#   grafana:
+#     image: grafana/grafana:13.2.2
+#     container_name: dbperf-grafana
+#     restart: unless-stopped
+#     environment:
+#       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER must be set in .env}
+#       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set in .env}
+#     volumes:
+#       - grafana_data:/var/lib/grafana
+#       - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+#     ports:
+#       - "127.0.0.1:3000:3000"
+#     depends_on:
+#       - prometheus
+#     networks:
+#       - dbperf-net
+
+  # One-shot seed loaders (profile "seed", never started by a plain `up`):
+  #   docker compose --profile seed run --rm seed-mysql      # reload + verify; verify only: add /loaders/verify_mysql.sh
+  #   docker compose --profile seed run --rm seed-mongodb    # reload + verify; verify only: add /loaders/verify_mongodb.sh
+  seed-mysql:
+    image: mysql:9.7.2
+    container_name: dbperf-seed-mysql
+    profiles: ["seed"]
+    restart: "no"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set in .env}
+    volumes:
+      - ./seed/loaders:/loaders:ro
+      - ./seed/data:/seed-data:ro
+      - mysql_files:/stage
+    entrypoint: ["bash"]
+    command: ["/loaders/load_mysql.sh"]
+    networks:
+      - dbperf-net
+
+  seed-mongodb:
+    image: mongo:8.0.32
+    container_name: dbperf-seed-mongodb
+    profiles: ["seed"]
+    restart: "no"
+    depends_on:
+      mongodb-schema-init:
+        condition: service_completed_successfully
+    environment:
+      MONGO_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?MONGO_ROOT_USERNAME must be set in .env}
+      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD must be set in .env}
+    volumes:
+      - ./seed/loaders:/loaders:ro
+      - ./seed/data:/seed-data:ro
+    entrypoint: ["bash"]
+    command: ["/loaders/load_mongodb.sh"]
+    networks:
+      - dbperf-net
+
+  # Data-logic checks (profile "seed"): run both, whichever runs second also compares with the first.
+  #   docker compose --profile seed run --rm seed-check-mysql
+  #   docker compose --profile seed run --rm seed-check-mongodb
+  seed-check-mysql:
+    image: mysql:9.7.2
+    container_name: dbperf-seed-check-mysql
+    profiles: ["seed"]
+    restart: "no"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set in .env}
+    volumes:
+      - ./seed/checks:/checks:ro
+      - seed_results:/results
+    entrypoint: ["bash"]
+    command: ["/checks/check_mysql.sh"]
+    networks:
+      - dbperf-net
+
+  seed-check-mongodb:
+    image: mongo:8.0.32
+    container_name: dbperf-seed-check-mongodb
+    profiles: ["seed"]
+    restart: "no"
+    depends_on:
+      mongodb-schema-init:
+        condition: service_completed_successfully
+    environment:
+      MONGO_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?MONGO_ROOT_USERNAME must be set in .env}
+      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD must be set in .env}
+    volumes:
+      - ./seed/checks:/checks:ro
+      - seed_results:/results
+    entrypoint: ["bash"]
+    command: ["/checks/check_mongodb.sh"]
+    networks:
+      - dbperf-net
+
+volumes:
+  mysql_data:
+  mysql_files:
+  seed_results:
+  mongodb_data:
+  mongodb_keyfile:
+#   prometheus_data:
+#   grafana_data:
+
+networks:
+  dbperf-net:
