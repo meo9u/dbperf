@@ -1,0 +1,4 @@
+-> Sort: order_month  (actual time=369..369 rows=25 loops=1)
+    -> Table scan on <temporary>  (actual time=369..369 rows=25 loops=1)
+        -> Aggregate using temporary table  (actual time=369..369 rows=25 loops=1)
+            -> Covering index lookup on orders using idx_orders_status_created_total (status = 'delivered')  (cost=50536 rows=496281) (actual time=0.0234..119 rows=960500 loops=1)

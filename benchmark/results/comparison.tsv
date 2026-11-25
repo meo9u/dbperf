@@ -1,0 +1,11 @@
+query	db	baseline_analyzed_p50_ms	baseline_analyzed_p95_ms	idx_p50_ms	idx_p95_ms	optimized_p50_ms	optimized_p95_ms	idx_speedup	idx_same_result	optimized_speedup	optimized_same_result	baseline_analyzed_examined	idx_examined	optimized_examined	baseline_analyzed_plan	idx_plan	optimized_plan
+q1_revenue_by_month	mysql	412.1	425.7	337.3	345.3	341.7	349.9	1.22x	yes	1.21x	yes	1000000	960500	960500	table scan	covering index	covering index
+q2_top_skus	mysql	4193.9	4367.9	5339.9	5374.8	1608.4	1639.0	0.79x	yes	2.61x	yes	1520126	1520126	1520126	table scan	covering index	covering index
+q3_revenue_by_category	mysql	9078.8	9284.1	11431.9	11491.6	2743.7	2792.1	0.79x	yes	3.31x	yes	2996760	3120000	2996760	table scan	covering index	covering index
+q4_top_customers	mysql	1833.2	2070.9	624.1	637.4	197.0	205.0	2.94x	yes	9.31x	yes	1000000	960000	960500	table scan	covering index	covering index
+q5_low_stock_by_warehouse	mysql	197.3	220.3	20.6	22.1	19.3	20.6	9.59x	yes	10.22x	yes	321400	4037	4037	table scan	index	index
+q1_revenue_by_month	mongodb	538.7	569.8	712.8	739.0	559.5	605.4	0.76x	yes	0.96x	yes	1000000	0	1000000	collscan	covered index	collscan
+q2_top_skus	mongodb	1455.9	1514.2	2158.3	2239.0	1486.3	1518.3	0.67x	yes	0.98x	yes	1000000	487220	1000000	collscan	index+fetch	collscan
+q3_revenue_by_category	mongodb	2201.0	2478.4	3927.3	3960.2	2149.7	2232.3	0.56x	yes	1.02x	yes	1000000	960500	1000000	collscan	index+fetch	collscan
+q4_top_customers	mongodb	1305.6	1409.4	1101.8	1149.3	1099.3	1171.7	1.18x	yes	1.19x	yes	1000000	50000	50000	collscan	covered index	covered index
+q5_low_stock_by_warehouse	mongodb	271.6	296.4	270.5	289.0	173.2	189.9	1.00x	yes	1.57x	yes	321410	321410	4037	collscan	collscan	index+fetch

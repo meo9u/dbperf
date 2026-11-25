@@ -1,0 +1,5 @@
+-> Sort: order_month  (actual time=486..486 rows=25 loops=1)
+    -> Table scan on <temporary>  (actual time=486..486 rows=25 loops=1)
+        -> Aggregate using temporary table  (actual time=486..486 rows=25 loops=1)
+            -> Filter: (orders.`status` = 'delivered')  (cost=100965 rows=198135) (actual time=0.0244..208 rows=960500 loops=1)
+                -> Table scan on orders  (cost=100965 rows=990675) (actual time=0.0227..123 rows=1e+6 loops=1)

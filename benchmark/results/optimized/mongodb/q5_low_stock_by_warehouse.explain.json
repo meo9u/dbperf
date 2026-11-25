@@ -1,0 +1,381 @@
+{
+  "explainVersion": "1",
+  "stages": [
+    {
+      "$cursor": {
+        "queryPlanner": {
+          "namespace": "dbperf.inventory",
+          "parsedQuery": {
+            "quantity_available": {
+              "$lte": 25
+            }
+          },
+          "indexFilterSet": false,
+          "queryHash": "5B534EEF",
+          "planCacheShapeHash": "5B534EEF",
+          "planCacheKey": "F69DDCED",
+          "optimizationTimeMillis": 0,
+          "maxIndexedOrSolutionsReached": false,
+          "maxIndexedAndSolutionsReached": false,
+          "maxScansToExplodeReached": false,
+          "prunedSimilarIndexes": false,
+          "winningPlan": {
+            "isCached": false,
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "quantity_available": 1,
+              "quantity_on_hand": 1,
+              "quantity_reserved": 1,
+              "sku_id": 1,
+              "warehouse_id": 1,
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "quantity_available": 1
+                },
+                "indexName": "idx_inventory_available",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "quantity_available": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "quantity_available": [
+                    "[-inf.0, 25]"
+                  ]
+                }
+              }
+            }
+          },
+          "rejectedPlans": []
+        },
+        "executionStats": {
+          "executionSuccess": true,
+          "nReturned": 4037,
+          "executionTimeMillis": 127,
+          "totalKeysExamined": 4037,
+          "totalDocsExamined": 4037,
+          "executionStages": {
+            "isCached": false,
+            "stage": "PROJECTION_SIMPLE",
+            "nReturned": 4037,
+            "executionTimeMillisEstimate": 1,
+            "works": 4038,
+            "advanced": 4037,
+            "needTime": 0,
+            "needYield": 0,
+            "saveState": 9,
+            "restoreState": 9,
+            "isEOF": 1,
+            "transformBy": {
+              "quantity_available": 1,
+              "quantity_on_hand": 1,
+              "quantity_reserved": 1,
+              "sku_id": 1,
+              "warehouse_id": 1,
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "FETCH",
+              "nReturned": 4037,
+              "executionTimeMillisEstimate": 1,
+              "works": 4038,
+              "advanced": 4037,
+              "needTime": 0,
+              "needYield": 0,
+              "saveState": 9,
+              "restoreState": 9,
+              "isEOF": 1,
+              "docsExamined": 4037,
+              "alreadyHasObj": 0,
+              "inputStage": {
+                "stage": "IXSCAN",
+                "nReturned": 4037,
+                "executionTimeMillisEstimate": 0,
+                "works": 4038,
+                "advanced": 4037,
+                "needTime": 0,
+                "needYield": 0,
+                "saveState": 9,
+                "restoreState": 9,
+                "isEOF": 1,
+                "keyPattern": {
+                  "quantity_available": 1
+                },
+                "indexName": "idx_inventory_available",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "quantity_available": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "quantity_available": [
+                    "[-inf.0, 25]"
+                  ]
+                },
+                "keysExamined": 4037,
+                "seeks": 1,
+                "dupsTested": 0,
+                "dupsDropped": 0
+              }
+            }
+          }
+        }
+      },
+      "nReturned": 4037,
+      "executionTimeMillisEstimate": 1
+    },
+    {
+      "$lookup": {
+        "from": "warehouses",
+        "as": "warehouse",
+        "localField": "warehouse_id",
+        "foreignField": "_id",
+        "unwinding": {
+          "preserveNullAndEmptyArrays": false
+        }
+      },
+      "totalDocsExamined": 4037,
+      "totalKeysExamined": 4037,
+      "collectionScans": 0,
+      "indexesUsed": [
+        "_id_"
+      ],
+      "nReturned": 4037,
+      "executionTimeMillisEstimate": 68
+    },
+    {
+      "$lookup": {
+        "from": "products",
+        "as": "product",
+        "localField": "sku_id",
+        "foreignField": "skus.sku_id",
+        "unwinding": {
+          "preserveNullAndEmptyArrays": false
+        }
+      },
+      "totalDocsExamined": 4037,
+      "totalKeysExamined": 4037,
+      "collectionScans": 0,
+      "indexesUsed": [
+        "uq_products_sku_id"
+      ],
+      "nReturned": 4037,
+      "executionTimeMillisEstimate": 105
+    },
+    {
+      "$set": {
+        "sku": {
+          "$first": [
+            {
+              "$filter": {
+                "input": "$product.skus",
+                "as": "this",
+                "cond": {
+                  "$eq": [
+                    "$$this.sku_id",
+                    "$sku_id"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "available": "$quantity_available"
+      },
+      "nReturned": 4037,
+      "executionTimeMillisEstimate": 105
+    },
+    {
+      "$sort": {
+        "sortKey": {
+          "warehouse.name": 1,
+          "available": 1,
+          "sku.sku_code": 1
+        }
+      },
+      "totalDataSizeSortedBytesEstimate": 22075477,
+      "usedDisk": false,
+      "spills": 0,
+      "spilledDataStorageSize": 0,
+      "nReturned": 4037,
+      "executionTimeMillisEstimate": 105
+    },
+    {
+      "$project": {
+        "warehouse_name": "$warehouse.name",
+        "sku_code": "$sku.sku_code",
+        "product_name": "$product.name",
+        "quantity_on_hand": {
+          "$convert": {
+            "input": "$quantity_on_hand",
+            "to": {
+              "$const": "string"
+            },
+            "format": {
+              "$const": "auto"
+            }
+          }
+        },
+        "quantity_reserved": {
+          "$convert": {
+            "input": "$quantity_reserved",
+            "to": {
+              "$const": "string"
+            },
+            "format": {
+              "$const": "auto"
+            }
+          }
+        },
+        "quantity_available": {
+          "$convert": {
+            "input": "$available",
+            "to": {
+              "$const": "string"
+            },
+            "format": {
+              "$const": "auto"
+            }
+          }
+        },
+        "_id": false
+      },
+      "nReturned": 4037,
+      "executionTimeMillisEstimate": 120
+    }
+  ],
+  "queryShapeHash": "28918BCC33AEF5AA336CB2AB782557F0684B24C217A7EE9ABD4DB83AC1201C6D",
+  "serverInfo": {
+    "host": "0624a139c535",
+    "port": 27017,
+    "version": "8.0.32",
+    "gitVersion": "f9eb55a7cc900f33a722a5b32a0fdbf54385c749"
+  },
+  "serverParameters": {
+    "internalQueryFacetBufferSizeBytes": 104857600,
+    "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+    "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+    "internalDocumentSourceGroupMaxMemoryBytes": 104857600,
+    "internalQueryMaxBlockingSortMemoryUsageBytes": 104857600,
+    "internalQueryProhibitBlockingMergeOnMongoS": 0,
+    "internalQueryMaxAddToSetBytes": 104857600,
+    "internalDocumentSourceSetWindowFieldsMaxMemoryBytes": 104857600,
+    "internalQueryFrameworkControl": "trySbeRestricted",
+    "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+  },
+  "command": {
+    "aggregate": "inventory",
+    "pipeline": [
+      {
+        "$match": {
+          "quantity_available": {
+            "$lte": 25
+          }
+        }
+      },
+      {
+        "$lookup": {
+          "from": "warehouses",
+          "localField": "warehouse_id",
+          "foreignField": "_id",
+          "as": "warehouse"
+        }
+      },
+      {
+        "$unwind": "$warehouse"
+      },
+      {
+        "$lookup": {
+          "from": "products",
+          "localField": "sku_id",
+          "foreignField": "skus.sku_id",
+          "as": "product"
+        }
+      },
+      {
+        "$unwind": "$product"
+      },
+      {
+        "$set": {
+          "sku": {
+            "$first": {
+              "$filter": {
+                "input": "$product.skus",
+                "cond": {
+                  "$eq": [
+                    "$$this.sku_id",
+                    "$sku_id"
+                  ]
+                }
+              }
+            }
+          },
+          "available": "$quantity_available"
+        }
+      },
+      {
+        "$sort": {
+          "warehouse.name": 1,
+          "available": 1,
+          "sku.sku_code": 1
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "warehouse_name": "$warehouse.name",
+          "sku_code": "$sku.sku_code",
+          "product_name": "$product.name",
+          "quantity_on_hand": {
+            "$toString": "$quantity_on_hand"
+          },
+          "quantity_reserved": {
+            "$toString": "$quantity_reserved"
+          },
+          "quantity_available": {
+            "$toString": "$available"
+          }
+        }
+      }
+    ],
+    "cursor": {},
+    "$db": "dbperf"
+  },
+  "ok": 1,
+  "$clusterTime": {
+    "clusterTime": {
+      "$timestamp": {
+        "t": 1795590385,
+        "i": 1
+      }
+    },
+    "signature": {
+      "hash": {
+        "$binary": {
+          "base64": "atkbkQ0dJ44gotO/TPYD92QxHSI=",
+          "subType": "00"
+        }
+      },
+      "keyId": 7711673673286943000
+    }
+  },
+  "operationTime": {
+    "$timestamp": {
+      "t": 1795590385,
+      "i": 1
+    }
+  }
+}

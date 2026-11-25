@@ -1,0 +1,8 @@
+-> Limit: 20 row(s)  (actual time=2142..2142 rows=20 loops=1)
+    -> Sort: total_spent DESC, c.email, limit input to 20 row(s) per chunk  (actual time=2142..2142 rows=20 loops=1)
+        -> Table scan on <temporary>  (actual time=2118..2128 rows=50000 loops=1)
+            -> Aggregate using temporary table  (actual time=2118..2118 rows=50000 loops=1)
+                -> Nested loop inner join  (cost=170505 rows=198361) (actual time=0.0385..1217 rows=960500 loops=1)
+                    -> Filter: (o.`status` = 'delivered')  (cost=101079 rows=198361) (actual time=0.0285..240 rows=960500 loops=1)
+                        -> Table scan on o  (cost=101079 rows=991807) (actual time=0.0262..144 rows=1e+6 loops=1)
+                    -> Single-row index lookup on c using PRIMARY (customer_id = o.customer_id)  (cost=0.25 rows=1) (actual time=888e-6..909e-6 rows=1 loops=960500)

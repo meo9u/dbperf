@@ -1,0 +1,11 @@
+query	db	rows	cold_ms	min_ms	p50_ms	p95_ms	max_ms
+q1_revenue_by_month	mongodb	25	547.7	536.1	555.1	587.6	587.6
+q1_revenue_by_month	mysql	25	427.2	422.5	428.7	437.5	437.5
+q2_top_skus	mongodb	20	1503.4	1478.3	1515.1	1540.5	1540.5
+q2_top_skus	mysql	20	4665.2	4340.2	4572.6	5085.6	5085.6
+q3_revenue_by_category	mongodb	19	2217.8	2143.4	2182.4	2382.2	2382.2
+q3_revenue_by_category	mysql	19	9682.6	9491.4	9666.3	9739.5	9739.5
+q4_top_customers	mongodb	20	1316.9	1056.9	1246.5	1593.4	1593.4
+q4_top_customers	mysql	20	1957.1	1843.2	1994.5	2118.8	2118.8
+q5_low_stock_by_warehouse	mongodb	4037	308.2	263.6	279.3	354.9	354.9
+q5_low_stock_by_warehouse	mysql	4037	226.6	215.2	222.8	230.7	230.7

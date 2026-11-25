@@ -1,0 +1,26 @@
+{
+  "query": "q5_low_stock_by_warehouse",
+  "db": "mysql",
+  "phase": "optimized",
+  "runs": 11,
+  "discarded_cold": 19.965,
+  "latency_ms": {
+    "min": 18.89,
+    "p50": 19.317,
+    "p95": 20.62,
+    "max": 20.62
+  },
+  "samples_ms": [
+    18.906,
+    19.536,
+    18.89,
+    19.485,
+    19.4,
+    19.317,
+    19.05,
+    19.286,
+    20.62,
+    19.747,
+    19.289
+  ]
+}
