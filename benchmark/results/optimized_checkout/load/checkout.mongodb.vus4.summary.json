@@ -1,0 +1,50 @@
+{
+    "metrics": {
+        "checkout_retry": {
+            "count": 41,
+            "rate": 0.9110508656860955
+        },
+        "vus": {
+            "value": 4,
+            "min": 4,
+            "max": 4
+        },
+        "vus_max": {
+            "value": 4,
+            "min": 4,
+            "max": 4
+        },
+        "checkout_ok": {
+            "count": 82744,
+            "rate": 1838.6339714714704
+        },
+        "data_sent": {
+            "count": 0,
+            "rate": 0
+        },
+        "data_received": {
+            "count": 0,
+            "rate": 0
+        },
+        "iteration_duration": {
+            "p(95)": 3.01812985,
+            "p(99)": 4.020267489999997,
+            "max": 96.296562,
+            "avg": 2.1697863062336955,
+            "min": 0.993395,
+            "med": 2.0202815000000003,
+            "p(90)": 2.7863253
+        },
+        "iterations": {
+            "count": 82744,
+            "rate": 1838.6339714714704
+        }
+    },
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {}
+    }
+}

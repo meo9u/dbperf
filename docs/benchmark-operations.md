@@ -2,7 +2,7 @@
 
 Ghi chú các nghiệp vụ được chọn để đo hiệu năng trên MySQL và MongoDB. Chia hai loại theo mục đích đo. Tài liệu này liệt kê nghiệp vụ và quy định đặt file (mục cuối); câu SQL, pipeline MongoDB và kịch bản tải sẽ viết sau (`queries/`, `benchmark/`).
 
-Cập nhật lần cuối: 2026-10-28.
+Cập nhật lần cuối: 2026-11-25.
 
 ## Loại 1: ít dùng, quét nhiều dữ liệu (so sánh từng query)
 
@@ -11,10 +11,10 @@ Cập nhật lần cuối: 2026-10-28.
 | #   | Nghiệp vụ                                                    | Dữ liệu phải đọc (MySQL / MongoDB)                                                             | Điểm cần để ý                                                                                                                    |
 | --- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | Doanh thu theo tháng                                         | `orders` / `orders`                                                                            | Tổng hợp trên phần lớn đơn (96% đơn là `delivered`). Đã có kết quả chuẩn trong 172 dòng tổng hợp của `seed/checks/` để đối chiếu |
-| 2   | Top SKU bán chạy trong một kỳ                                | `orders` + `order_detail` + `sku` / `orders.lines[]` (`$unwind`) + `products`                  | Join cộng gom nhóm trên khoảng 312K dòng đơn. MongoDB phải mở mảng lồng                                                          |
+| 2   | Top SKU bán chạy trong một kỳ                                | `orders` + `order_detail` + `sku` / `orders.lines[]` (`$unwind`) + `products`                  | Join cộng gom nhóm trên khoảng 3,1 triệu dòng đơn (1,5 triệu dòng của năm 2019). MongoDB phải mở mảng lồng                                                          |
 | 3   | Doanh thu theo danh mục sản phẩm                             | `order_detail` + `sku` + `product` + `category` / `orders.lines[]` + `products` + `categories` | Đi qua 4 bảng ở MySQL, hai bước `$lookup` ở MongoDB                                                                              |
 | 4   | Top khách hàng theo tổng chi tiêu                            | `orders` + `customer` / `orders` + `customers`                                                 | Gom nhóm theo khách trên toàn bộ đơn rồi nối thông tin khách                                                                     |
-| 5   | Báo cáo hàng tồn thấp theo kho                               | `inventory` + `sku` + `product` + `warehouse` / `inventory` + `products` + `warehouses`        | Nối nhiều bảng nhỏ với `inventory` (khoảng 66K dòng)                                                                             |
+| 5   | Báo cáo hàng tồn thấp theo kho                               | `inventory` + `sku` + `product` + `warehouse` / `inventory` + `products` + `warehouses`        | Nối nhiều bảng nhỏ với `inventory` (321.410 dòng)                                                                             |
 
 ### Quy ước chung cho loại 1
 - Chạy từng truy vấn một mình, lặp nhiều lần, bỏ lần chạy đầu (cache lạnh) hoặc ghi riêng.
@@ -23,7 +23,9 @@ Cập nhật lần cuối: 2026-10-28.
 - Định nghĩa "doanh thu" là đơn có `status = 'delivered'`. Đây là giả định của tôi, cần bạn xác nhận.
 
 ### Lưu ý về dữ liệu
-Bộ pilot (100K đơn, 312K dòng đơn, 66K tồn kho) nằm gọn trong cache của container (4 GB RAM), nên chênh lệch giữa hai DB và tác dụng của index sẽ nhỏ hơn so với dữ liệu 10M đơn. Cần ghi hạn chế này vào báo cáo.
+Bộ dữ liệu đang nạp là `bigdata-final` (1.000.000 đơn, ~3,1 triệu dòng đơn, 321.410 dòng tồn kho, 50.000 khách, 4.000 sản phẩm, 20.000 SKU). Cache mỗi DB là 1536 MB, nhỏ hơn dữ liệu của MySQL (~560 MB dữ liệu + index nằm gọn) nhưng đủ lớn để phần lớn dữ liệu nóng nằm trong cache, nên chênh lệch do I/O đĩa chưa lộ ra. Quy mô vẫn nhỏ hơn mục tiêu 10 triệu đơn; cần ghi hạn chế này vào báo cáo.
+
+Thống kê MySQL ảnh hưởng đến kế hoạch thực thi: chạy `ANALYZE TABLE` trước khi đo baseline (xem `docs/bao-cao-ket-qua-class1.md` mục 8.1 và `docs/bao-cao-ket-qua-class2-search.md` mục 5).
 
 ## Loại 2: tần suất cao, nhiều người dùng cùng lúc (so sánh chịu tải)
 
@@ -42,14 +44,36 @@ Bộ này gồm một thao tác đọc và một thao tác ghi, nên kịch bả
 
 Xem chi tiết sản phẩm, xem tồn kho của một SKU, ghi kết quả thanh toán, hủy đơn, xem lịch sử đơn hàng của khách, xem chi tiết một đơn hàng, tra khách hàng theo email.
 
-### Câu hỏi chưa giải quyết
-1. Catalog hiện chỉ có 900 sản phẩm và 2.000 SKU, nên tìm kiếm và lọc sản phẩm ít có ý nghĩa với dữ liệu này.
-2. Tìm theo từ khóa tên có đưa vào không (chưa có index hỗ trợ, quét toàn bộ cả hai DB)?
-3. Checkout: số dòng hàng mỗi đơn, tỉ lệ SKU "nóng" gây tranh chấp trên `inventory`, chính sách thử lại khi xung đột (deadlock ở MySQL, `WriteConflict` ở MongoDB).
-4. Checkout làm thay đổi dữ liệu: mỗi lần đo có nạp lại dữ liệu trước không, và sau đó có chạy lại `seed/checks/` không (đặc biệt `inventory_reserved_ne_pending` để phát hiện cập nhật bị mất)?
-5. Công cụ bắn tải đã chốt là k6 gọi thẳng DB qua extension (2026-10-28). `xk6-mongo` có `StartSession`/`StartTransaction`/`CommitTransaction`, nhưng Session chỉ có `Insert`, `FindOne`, `UpdateOne`, `DeleteOne`, nên checkout phải viết trong phạm vi các thao tác đó.
-6. Mức độ bền khi ghi và mức cô lập của hai DB cần được đặt tương đương trước khi so sánh TPS ghi.
-7. Tỉ lệ đọc và ghi trong kịch bản hỗn hợp (ví dụ chia theo tỉ trọng 22,7% và 3%, hay chạy riêng từng nghiệp vụ).
+### Quyết định đã chốt (2026-11-25)
+
+1. **Catalog** có 4.000 sản phẩm và 20.000 SKU (không phải 900 và 2.000), đủ để tìm kiếm có ý nghĩa; mỗi danh mục lớn nhất có ~700 sản phẩm.
+2. **Tìm kiếm** gồm danh mục (bắt buộc, chọn theo trọng số kích thước), và tùy chọn màu (50%), khoảng giá (60%), từ khóa tên (30%, khớp chuỗi con, không dùng `FULLTEXT`/`$text` vì khớp theo từ cho kết quả khác), phân trang trang 0–7 (`OFFSET`/`$skip`, không dùng keyset). Cùng chuỗi tham số cho hai DB (`benchmark/scenarios/lib/search_params.js`).
+3. **Chạy riêng từng nghiệp vụ**, không chạy hỗn hợp; mỗi nghiệp vụ đo ở nhiều mức tải (4, 8, 16, 32, 64 VU).
+4. **Mức bền và cô lập: giữ mặc định của từng DB và ghi rõ vào báo cáo.** MySQL: `innodb_flush_log_at_trx_commit=1`, `sync_binlog=1`, REPEATABLE READ. MongoDB: `w:majority` kèm journal, snapshot isolation trong transaction.
+5. **Checkout làm thay đổi dữ liệu:** đưa dữ liệu về trạng thái ban đầu trước mỗi mức tải, và sau mỗi lần chạy kiểm tra tính toàn vẹn (số đơn mới bằng số checkout thành công, `inventory_reserved_ne_pending` = 0, `status_payment_consistency` vẫn là 562 vi phạm đã có trong dữ liệu).
+6. **Công cụ:** k6 gọi thẳng DB qua extension. `xk6-sql` không có API giao dịch (dùng `START TRANSACTION`/`COMMIT` trên cùng một kết nối); session của `xk6-mongo` chỉ có `insert`, `findOne`, `updateOne`, `deleteOne` và `updateOne` không trả kết quả, nên hết hàng phải được phát hiện qua lỗi ràng buộc (CHECK ở MySQL, validator ở MongoDB). Chi tiết thiết kế checkout được xác nhận bằng bước thăm dò (xem mục dưới).
+
+### Kết quả đã có cho class 2
+
+Tìm kiếm (`search_products`): baseline, tối ưu và so sánh trong `docs/bao-cao-ket-qua-class2-search.md`; số liệu ở `benchmark/results/<phase>/load/`.
+
+Đặt hàng (`checkout`): baseline, biến thể tối ưu, chi phí ghi của index và kiểm tra công cụ trong `docs/bao-cao-ket-qua-class2-checkout.md`.
+
+### Thiết kế checkout (đã xác nhận bằng thăm dò, 2026-11-25)
+
+Mỗi yêu cầu đặt một đơn trạng thái `pending` kèm một thanh toán `pending`, 1–3 dòng hàng lấy từ **đơn mẫu** trong dữ liệu thật, tăng `inventory.quantity_reserved` cho từng (SKU, kho) trong cùng một transaction. Một nhóm nhỏ SKU "nóng" nhận phần lớn dòng hàng để tạo tranh chấp khóa thật; khi xung đột (deadlock ở MySQL, `WriteConflict` ở MongoDB) thử lại tối đa 3 lần. Đơn mẫu dùng chung cho hai DB vì `orders._id` của MongoDB và `order_id` của MySQL cùng số thứ tự (đơn 1, 2, 3 có cùng khách, tổng tiền, số dòng).
+
+Kết quả thăm dò khả năng của extension (mọi thao tác ghi đều được rollback hoặc dùng collection tạm):
+
+| Câu hỏi | Kết quả | Hệ quả cho thiết kế |
+|---|---|---|
+| MySQL: transaction qua `xk6-sql` (không có API `begin`)? | `START TRANSACTION`, các câu lệnh, `ROLLBACK`/`COMMIT` luôn chạy trên **cùng một kết nối**: 97.493/97.493 lần với 32 VU; ngữ nghĩa đúng 34.599/34.599 lần (đọc thấy giá trị mới trong transaction, rollback trả về giá trị cũ) | Dùng câu lệnh thường, không cần cấu hình thêm |
+| MySQL: lỗi có bắt được không? | Bắt được bằng `try/catch`, dạng `Error <mã> (<sqlstate>): ...`. Hết hàng: `Error 3819 ... Check constraint 'chk_inventory_quantity_reserved' is violated`; deadlock: `Error 1213 (40001) Deadlock found...` | Phân loại theo mã trong thông báo; sau lỗi gọi `ROLLBACK` |
+| Mongo: tạo Decimal128 từ JS? | Không: `{$numberDecimal}` không được chuyển đổi. Nhưng Decimal128, ObjectId và ngày lấy từ tài liệu đã đọc (đơn mẫu) giữ nguyên kiểu khi chèn lại; pipeline cập nhật (`$toDecimal`) cũng tạo được Decimal128 | Dựng đơn từ đơn mẫu (lines, total_amount, kiểu tiền giữ nguyên) |
+| Mongo: ObjectId mới (cho `payment_id`)? | Mảng 12 số tự tạo **không** thành ObjectId. Tạo được bằng `client.aggregate` với `$toObjectId` trên chuỗi hex; kết quả giữ kiểu ObjectId | Tạo sẵn một nhóm `payment_id` trong giai đoạn init của mỗi VU |
+| Mongo: số nguyên JS? | Xuất thành `long` (int64). Validator `schema_version` của `orders` yêu cầu `int` nên chèn bị từ chối (chỉ trường này sai) | Nới `orders.schema_version` thành `int` hoặc `long` **chỉ trong lúc chạy checkout** (script áp dụng; `mongodb-schema-init` đặt lại bản gốc). Ghi vào báo cáo như hạn chế của công cụ |
+| Mongo: lỗi trong session? | Vi phạm validator (hết hàng) và `WriteConflict` đều ném lỗi bắt được; sau lỗi validator transaction đã bị hủy (`NoSuchTransaction` khi commit). `session.updateOne` không trả về kết quả | Hết hàng = lỗi "Document failed validation" khi cập nhật `inventory`; xung đột = chứa `WriteConflict`; luôn `abortTransaction` trong `try/catch` |
+| Chạy k6 có đổi schema không? | Có: service `k6` phụ thuộc `mongodb-schema-init`, nên mỗi lần `compose run k6` đặt lại validator về bản gốc (và `docker compose up` cũng vậy) | Chạy k6 với `--no-deps`; áp dụng nới validator ngay trước khi chạy |
 
 ## Quy định đặt file
 

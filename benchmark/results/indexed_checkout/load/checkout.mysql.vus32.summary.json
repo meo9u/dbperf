@@ -1,0 +1,46 @@
+{
+    "metrics": {
+        "vus": {
+            "value": 32,
+            "min": 0,
+            "max": 32
+        },
+        "vus_max": {
+            "value": 32,
+            "min": 8,
+            "max": 32
+        },
+        "checkout_ok": {
+            "count": 35977,
+            "rate": 799.3115737657849
+        },
+        "data_sent": {
+            "count": 0,
+            "rate": 0
+        },
+        "data_received": {
+            "count": 0,
+            "rate": 0
+        },
+        "iteration_duration": {
+            "avg": 40.01680257923066,
+            "min": 4.698037,
+            "med": 36.695123,
+            "p(90)": 47.1855196,
+            "p(95)": 61.05359719999994,
+            "p(99)": 92.31517655999998,
+            "max": 186.222463
+        },
+        "iterations": {
+            "count": 35977,
+            "rate": 799.3115737657849
+        }
+    },
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {},
+        "checks": {}
+    }
+}
