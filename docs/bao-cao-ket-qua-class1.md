@@ -202,6 +202,8 @@ Index thêm vào không giúp mà làm optimizer chọn plan khác, tệ hơn:
 - q3: optimizer đổi thứ tự join: đi từ `sku` (20.000) → `order_detail` theo `sku_id` (~156 dòng mỗi SKU) → tra `orders` theo khóa chính 3,12 triệu lần để kiểm tra `delivered`. Nhiều lần tra hơn plan cũ.
 - Dấu hiệu của ước lượng sai: plan ghi `rows=496281` cho `status='delivered'` trong khi thực tế là 960.500 (lệch gần 2 lần).
 
+**Thí nghiệm histogram (`results/idx_histogram/`).** Để kiểm tra xem ước lượng sai có sửa được bằng thống kê không, mình tạo histogram 100 bucket trên `orders.status` và `orders.customer_id` (`ANALYZE TABLE ... UPDATE HISTOGRAM`) rồi chạy lại q2, q3 bằng truy vấn baseline. Kết quả: **không đổi gì**. Ước lượng vẫn là `rows=495903` (thực tế 960.500), q2 vẫn chọn `idx_orders_status_customer_total`, q3 vẫn đi từ `sku` (q2 6907 ms, q3 11172 ms, không tốt hơn bước `idx`). Lý do (theo tài liệu MySQL, mình chưa kiểm chứng riêng): với cột đã có index, optimizer ước lượng điều kiện `status = 'delivered'` bằng index dive trên chính index chứ không dùng histogram; histogram chỉ có tác dụng với cột không có index. Vậy giả thuyết "thống kê không đủ" bị bác bỏ cho trường hợp này; nguyên nhân thật là sai số của ước lượng index dive ở khoảng giá trị rất lớn (96% bảng), và cách xử lý thực tế vẫn là gợi ý (`JOIN_ORDER`, `USE INDEX`) và viết lại truy vấn.
+
 Cách xử lý: viết lại truy vấn buộc thứ tự join (`JOIN_ORDER`) và index (`USE INDEX`), và gom nhóm trước. Đây là lý do bước `optimized` mới cho hiệu quả, trong khi `idx` một mình thì không.
 
 ### 6.4 Chi phí đĩa của index (MB)
@@ -253,7 +255,7 @@ Nhận xét:
 ## 9. Việc tiếp theo
 
 1. (Đã làm) Đo lại baseline sau `ANALYZE TABLE` (mục 8.1).
-2. Thử `ANALYZE TABLE orders UPDATE HISTOGRAM ON status` để kiểm tra giả thuyết ước lượng sai làm optimizer chọn nhầm index (chưa làm).
+2. (Đã làm) Thử histogram: không thay đổi plan (mục 6.3).
 3. Quyết định có làm bước tiền tổng hợp cho q1, q3 hay chỉ đưa vào khuyến nghị.
 4. Class 2 (k6): tìm kiếm sản phẩm và checkout, gồm đo chi phí ghi của các index mới.
 
