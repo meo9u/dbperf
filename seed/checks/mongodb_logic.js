@@ -76,7 +76,7 @@ d.orders.find().batchSize(5000).forEach((o) => {
       const wk = hex(l.warehouse_id);
       if (!warehouses.has(wk)) hit("fk_line_warehouse");
       if (o.status === "cancelled") hit("cancelled_line_has_warehouse");
-      if (o.status === "pending") pendingQty.set(sk + "|" + wk, (pendingQty.get(sk + "|" + wk) || 0) + l.quantity);
+      if (o.status === "pending") pendingQty.set(sk + "|" + wk, (pendingQty.get(sk + "|" + wk) || 0) + Number(l.quantity));
     }
     if (up <= 0) hit("line_price_not_positive");
     if (seen.has(sk) && !dup.has(sk)) { dup.add(sk); hit("dup_sku_in_order"); }
@@ -101,8 +101,9 @@ d.inventory.find().forEach((i) => {
   const sk = hex(i.sku_id), wk = hex(i.warehouse_id), key = sk + "|" + wk;
   invKeys.add(key);
   if (!skus.has(sk) || !warehouses.has(wk)) hit("fk_inventory_refs");
-  if (i.quantity_reserved > i.quantity_on_hand) hit("inventory_reserved_gt_on_hand");
-  if (i.quantity_reserved !== (pendingQty.get(key) || 0)) hit("inventory_reserved_ne_pending");
+  // Number(): a field changed by $inc from a client that sends int64 (k6) is a Long, not a JS number.
+  if (Number(i.quantity_reserved) > Number(i.quantity_on_hand)) hit("inventory_reserved_gt_on_hand");
+  if (Number(i.quantity_reserved) !== (pendingQty.get(key) || 0)) hit("inventory_reserved_ne_pending");
 });
 for (const key of pendingQty.keys()) if (!invKeys.has(key)) hit("inventory_reserved_ne_pending");
 for (const sk of skus.keys()) if (!sold.has(sk)) hit("sku_never_ordered");

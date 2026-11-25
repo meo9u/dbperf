@@ -24,11 +24,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from run_class1 import ROOT, inspect_limits, meta_mongo, meta_mysql  # noqa: E402
 
 
-def k6(scenario, db, vus, duration, export, variant):
+def k6(scenario, db, vus, duration, export, variant, extra_env=()):
+    # --no-deps: the k6 service depends on mongodb-schema-init, which would reset the MongoDB validators (and any
+    # harness change to them) before every run.
     # --user: the results mount is owned by the host user; k6's default user could not write the summary there
     # (k6 only logs the error and still exits 0, so the export is checked below).
-    cmd = ["docker", "compose", "--profile", "loadtest", "run", "--rm", "-T", "--user", f"{os.getuid()}:{os.getgid()}", "k6", "run",
+    cmd = ["docker", "compose", "--profile", "loadtest", "run", "--rm", "--no-deps", "-T", "--user", f"{os.getuid()}:{os.getgid()}", "k6", "run",
            "-e", f"VUS={vus}", "-e", f"DURATION={duration}", "-e", f"VARIANT={variant}"]
+    for kv in extra_env:  # e.g. "HOT_SHARE=0.5"
+        cmd += ["-e", kv]
     if export:
         cmd += [f"--summary-export=/results/{export}"]
     cmd += [f"/scripts/{scenario}.{db}.js"]
