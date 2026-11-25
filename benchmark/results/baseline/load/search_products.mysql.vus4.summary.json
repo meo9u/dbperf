@@ -1,0 +1,55 @@
+{
+    "root_group": {
+        "groups": {},
+        "checks": {},
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "metrics": {
+        "data_received": {
+            "count": 0,
+            "rate": 0
+        },
+        "iteration_duration": {
+            "p(95)": 58.7933095,
+            "p(99)": 63.891221239999986,
+            "max": 73.34147,
+            "avg": 10.025365358395957,
+            "min": 0.237013,
+            "med": 3.364342,
+            "p(90)": 47.06919460000003
+        },
+        "iterations": {
+            "count": 17955,
+            "rate": 398.7039745612505
+        },
+        "vus": {
+            "value": 4,
+            "min": 4,
+            "max": 4
+        },
+        "vus_max": {
+            "min": 4,
+            "max": 4,
+            "value": 4
+        },
+        "search_latency": {
+            "avg": 10.011027568922305,
+            "min": 0,
+            "med": 3,
+            "p(90)": 47,
+            "p(95)": 59,
+            "p(99)": 64,
+            "max": 73
+        },
+        "search_rows": {
+            "count": 227548,
+            "rate": 5052.870621189832
+        },
+        "data_sent": {
+            "count": 0,
+            "rate": 0
+        }
+    }
+}
