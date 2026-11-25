@@ -6,7 +6,7 @@ exports the k6 summary, then writes a table with throughput and latency per leve
 
 Usage:
   python3 benchmark/run_class2.py --scenario search_products --phase baseline --db both \
-      [--levels 4,8,16,32,64] [--duration 45s] [--warmup 20s]
+      [--levels 4,8,16,32,64] [--duration 45s] [--warmup 20s] [--variant baseline|optimized]
 Output: benchmark/results/<phase>/load/{<scenario>.<db>.vus<N>.summary.json, <scenario>.summary.tsv, <scenario>.meta.json}
 
 Only read-only scenarios are safe to repeat. Write scenarios (checkout) change the data: reload the seed data
@@ -24,11 +24,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from run_class1 import ROOT, inspect_limits, meta_mongo, meta_mysql  # noqa: E402
 
 
-def k6(scenario, db, vus, duration, export):
+def k6(scenario, db, vus, duration, export, variant):
     # --user: the results mount is owned by the host user; k6's default user could not write the summary there
     # (k6 only logs the error and still exits 0, so the export is checked below).
     cmd = ["docker", "compose", "--profile", "loadtest", "run", "--rm", "-T", "--user", f"{os.getuid()}:{os.getgid()}", "k6", "run",
-           "-e", f"VUS={vus}", "-e", f"DURATION={duration}"]
+           "-e", f"VUS={vus}", "-e", f"DURATION={duration}", "-e", f"VARIANT={variant}"]
     if export:
         cmd += [f"--summary-export=/results/{export}"]
     cmd += [f"/scripts/{scenario}.{db}.js"]
@@ -54,6 +54,7 @@ def main():
     ap.add_argument("--db", choices=["mysql", "mongodb", "both"], default="both")
     ap.add_argument("--levels", default="4,8,16,32,64", help="comma list of VU counts")
     ap.add_argument("--duration", default="45s", help="time per level")
+    ap.add_argument("--variant", default="baseline", help="request variant passed to the scenario as VARIANT (baseline|optimized)")
     ap.add_argument("--warmup", default="20s", help="unrecorded run at 16 VUs before the first level of each DB")
     a = ap.parse_args()
     dbs = ["mysql", "mongodb"] if a.db == "both" else [a.db]
@@ -62,7 +63,7 @@ def main():
     outdir.mkdir(parents=True, exist_ok=True)
 
     meta = {"scenario": a.scenario, "phase": a.phase, "date_utc": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
-            "levels_vus": levels, "duration_per_level": a.duration, "warmup": a.warmup,
+            "variant": a.variant, "levels_vus": levels, "duration_per_level": a.duration, "warmup": a.warmup,
             "k6": {"image": "dbperf-k6:local", **{k: v for k, v in inspect_limits_k6().items()}}}
     if "mysql" in dbs:
         meta["mysql"] = meta_mysql()
@@ -72,11 +73,11 @@ def main():
     rows = []
     for db in dbs:
         print(f"[{db}] warm-up {a.warmup} ...", flush=True)
-        k6(a.scenario, db, 16, a.warmup, None)
+        k6(a.scenario, db, 16, a.warmup, None, a.variant)
         for vus in levels:
             name = f"{a.scenario}.{db}.vus{vus}.summary.json"
             print(f"[{db}] {vus} VUs for {a.duration} ...", flush=True)
-            k6(a.scenario, db, vus, a.duration, f"{a.phase}/load/{name}")
+            k6(a.scenario, db, vus, a.duration, f"{a.phase}/load/{name}", a.variant)
             rows.append((db, vus, summarize(outdir / name)))
     (outdir / f"{a.scenario}.meta.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
 

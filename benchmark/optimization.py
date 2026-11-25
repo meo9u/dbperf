@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Apply or roll back the Phase 5 schema optimizations (indexes, stored columns) on the running containers.
 
-Usage: python3 benchmark/optimization.py apply|rollback [--db mysql|mongodb|both]
-Files: schema/<db>/optimization/{01_indexes,99_rollback}.{sql,js}
+Usage: python3 benchmark/optimization.py apply|rollback [--db mysql|mongodb|both] [--set class1|search]
+Files: schema/<db>/optimization/{01_indexes,99_rollback}.{sql,js} (--set class1, default)
+       schema/<db>/optimization/search_{01_indexes,99_rollback}.{sql,js} (--set search: class 2 search_products)
 """
 import argparse
 import sys
@@ -12,15 +13,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from run_class1 import CONTAINER, ROOT, mongo_file, mysql, sh  # noqa: E402
 
 FILES = {"apply": "01_indexes", "rollback": "99_rollback"}
+PREFIX = {"class1": "", "search": "search_"}
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("action", choices=FILES)
     ap.add_argument("--db", choices=["mysql", "mongodb", "both"], default="both")
+    ap.add_argument("--set", dest="optset", choices=list(PREFIX), default="class1")
     a = ap.parse_args()
     for db in ["mysql", "mongodb"] if a.db == "both" else [a.db]:
-        path = ROOT / "schema" / db / "optimization" / (FILES[a.action] + (".sql" if db == "mysql" else ".js"))
+        path = ROOT / "schema" / db / "optimization" / (PREFIX[a.optset] + FILES[a.action] + (".sql" if db == "mysql" else ".js"))
         print(f"{a.action} {db}: {path.relative_to(ROOT)}", flush=True)
         if db == "mysql":
             mysql(path.read_text(encoding="utf-8"), "-t")

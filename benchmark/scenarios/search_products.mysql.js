@@ -8,6 +8,11 @@ import { PAGE_SIZE, searchParams, money, text, VERIFY_CASES, loadOptions } from 
 
 export const options = loadOptions("search_products");
 
+// VARIANT=baseline (default) or optimized run the same query: for MySQL the optimization is the indexes / generated
+// column (schema/mysql/optimization/search_01_indexes.sql), no request rewrite helped. VARIANT=hint is the join-order
+// experiment (see search()).
+const VARIANT = __ENV.VARIANT || "baseline";
+
 const db = sql.open(driver, __ENV.MYSQL_DSN);
 const latency = new Trend("search_latency", true);
 const rowsReturned = new Counter("search_rows");
@@ -17,7 +22,10 @@ const categoryIds = {};
 for (const r of db.query("SELECT category_id, name FROM category")) categoryIds[text(r.name)] = Number(r.category_id);
 
 function search(p) {
-  let q = "SELECT s.sku_code, p.name, s.current_price, JSON_UNQUOTE(JSON_EXTRACT(s.variant_attributes, '$.color')) AS color " +
+  // VARIANT=hint (an experiment, measured slower overall than the plain query): with a colour / price / keyword filter
+  // force the product-first join order instead of the optimizer's default (scan sku by sku_code until 20 rows match).
+  const hint = VARIANT === "hint" && (p.color || p.price || p.keyword) ? "/*+ JOIN_ORDER(p, s) */ " : "";
+  let q = "SELECT " + hint + "s.sku_code, p.name, s.current_price, JSON_UNQUOTE(JSON_EXTRACT(s.variant_attributes, '$.color')) AS color " +
           "FROM sku s JOIN product p ON p.product_id = s.product_id " +
           "WHERE p.category_id = ? AND p.status = 'active' AND s.status = 'active'";
   const args = [categoryIds[p.category]];

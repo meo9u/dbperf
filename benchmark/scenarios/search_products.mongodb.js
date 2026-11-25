@@ -7,6 +7,10 @@ import { PAGE_SIZE, searchParams, money, VERIFY_CASES, loadOptions } from "./lib
 
 export const options = loadOptions("search_products");
 
+// VARIANT=baseline (default): the request as first written. VARIANT=optimized: adds a pre-unwind $match with $elemMatch
+// so the multikey index (idx_products_search) prunes products before $unwind; results are identical.
+const VARIANT = __ENV.VARIANT || "baseline";
+
 const client = mongo.newClient(__ENV.MONGO_URI);
 const latency = new Trend("search_latency", true);
 const rowsReturned = new Counter("search_rows");
@@ -22,6 +26,12 @@ function search(p) {
   if (p.color) skuMatch["skus.variant_attributes.color"] = p.color;
   const productMatch = { category_id: categoryIds[p.category], status: "active" };
   if (p.keyword) productMatch.name = { $regex: p.keyword, $options: "i" };
+  if (VARIANT === "optimized") {
+    const elem = { status: "active" };
+    if (p.price) elem.current_price = { $gte: p.price[0], $lte: p.price[1] };
+    if (p.color) elem["variant_attributes.color"] = p.color;
+    productMatch.skus = { $elemMatch: elem };
+  }
   return client.aggregate("dbperf", "products", [
     { $match: productMatch },
     { $unwind: "$skus" },

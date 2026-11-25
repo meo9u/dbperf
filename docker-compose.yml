@@ -13,7 +13,7 @@ services:
       # secure_file_priv directory, shared with seed-mysql, which stages the seed CSVs here
       # for server-side LOAD DATA INFILE (secure_file_priv stays at its default).
       - mysql_files:/var/lib/mysql-files
-    # Match MongoDB's default WiredTiger cache (50% of (4g - 1g) = 1536 MB) so both engines get the same cache.
+    # Same size as the MongoDB WiredTiger cache (--wiredTigerCacheSizeGB=1.5 below) so both engines get the same cache.
     command: ["--innodb-buffer-pool-size=1536M"]
     cpus: "2"
     mem_limit: "4g"
@@ -30,7 +30,9 @@ services:
     image: mongo:8.0.32
     container_name: dbperf-mongodb
     restart: unless-stopped
-    command: ["--replSet", "rs0", "--bind_ip_all", "--keyFile", "/etc/mongo-keyfile/mongo-keyfile"]
+    # Explicit WiredTiger cache, equal to the MySQL buffer pool (1536 MB), so both engines keep the same cache even if
+    # mem_limit changes (the default would be 50% of (RAM - 1 GB)).
+    command: ["--replSet", "rs0", "--bind_ip_all", "--keyFile", "/etc/mongo-keyfile/mongo-keyfile", "--wiredTigerCacheSizeGB=1.5"]
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?MONGO_ROOT_USERNAME must be set in .env}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD must be set in .env}
