@@ -1,0 +1,383 @@
+{
+  "explainVersion": "1",
+  "stages": [
+    {
+      "$cursor": {
+        "queryPlanner": {
+          "namespace": "dbperf.inventory",
+          "parsedQuery": {
+            "$expr": {
+              "$lte": [
+                {
+                  "$subtract": [
+                    "$quantity_on_hand",
+                    "$quantity_reserved"
+                  ]
+                },
+                {
+                  "$const": 25
+                }
+              ]
+            }
+          },
+          "indexFilterSet": false,
+          "queryHash": "24578FFC",
+          "planCacheShapeHash": "24578FFC",
+          "planCacheKey": "37BD1314",
+          "optimizationTimeMillis": 0,
+          "maxIndexedOrSolutionsReached": false,
+          "maxIndexedAndSolutionsReached": false,
+          "maxScansToExplodeReached": false,
+          "prunedSimilarIndexes": false,
+          "winningPlan": {
+            "isCached": false,
+            "stage": "PROJECTION_SIMPLE",
+            "transformBy": {
+              "quantity_on_hand": 1,
+              "quantity_reserved": 1,
+              "sku_id": 1,
+              "warehouse_id": 1,
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "COLLSCAN",
+              "filter": {
+                "$expr": {
+                  "$lte": [
+                    {
+                      "$subtract": [
+                        "$quantity_on_hand",
+                        "$quantity_reserved"
+                      ]
+                    },
+                    {
+                      "$const": 25
+                    }
+                  ]
+                }
+              },
+              "direction": "forward"
+            }
+          },
+          "rejectedPlans": []
+        },
+        "executionStats": {
+          "executionSuccess": true,
+          "nReturned": 4037,
+          "executionTimeMillis": 197,
+          "totalKeysExamined": 0,
+          "totalDocsExamined": 321410,
+          "executionStages": {
+            "isCached": false,
+            "stage": "PROJECTION_SIMPLE",
+            "nReturned": 4037,
+            "executionTimeMillisEstimate": 78,
+            "works": 321411,
+            "advanced": 4037,
+            "needTime": 317373,
+            "needYield": 0,
+            "saveState": 12,
+            "restoreState": 12,
+            "isEOF": 1,
+            "transformBy": {
+              "quantity_on_hand": 1,
+              "quantity_reserved": 1,
+              "sku_id": 1,
+              "warehouse_id": 1,
+              "_id": 0
+            },
+            "inputStage": {
+              "stage": "COLLSCAN",
+              "filter": {
+                "$expr": {
+                  "$lte": [
+                    {
+                      "$subtract": [
+                        "$quantity_on_hand",
+                        "$quantity_reserved"
+                      ]
+                    },
+                    {
+                      "$const": 25
+                    }
+                  ]
+                }
+              },
+              "nReturned": 4037,
+              "executionTimeMillisEstimate": 75,
+              "works": 321411,
+              "advanced": 4037,
+              "needTime": 317373,
+              "needYield": 0,
+              "saveState": 12,
+              "restoreState": 12,
+              "isEOF": 1,
+              "direction": "forward",
+              "docsExamined": 321410
+            }
+          }
+        }
+      },
+      "nReturned": 4037,
+      "executionTimeMillisEstimate": 82
+    },
+    {
+      "$lookup": {
+        "from": "warehouses",
+        "as": "warehouse",
+        "localField": "warehouse_id",
+        "foreignField": "_id",
+        "unwinding": {
+          "preserveNullAndEmptyArrays": false
+        }
+      },
+      "totalDocsExamined": 4037,
+      "totalKeysExamined": 4037,
+      "collectionScans": 0,
+      "indexesUsed": [
+        "_id_"
+      ],
+      "nReturned": 4037,
+      "executionTimeMillisEstimate": 152
+    },
+    {
+      "$lookup": {
+        "from": "products",
+        "as": "product",
+        "localField": "sku_id",
+        "foreignField": "skus.sku_id",
+        "unwinding": {
+          "preserveNullAndEmptyArrays": false
+        }
+      },
+      "totalDocsExamined": 4037,
+      "totalKeysExamined": 4037,
+      "collectionScans": 0,
+      "indexesUsed": [
+        "uq_products_sku_id"
+      ],
+      "nReturned": 4037,
+      "executionTimeMillisEstimate": 182
+    },
+    {
+      "$set": {
+        "sku": {
+          "$first": [
+            {
+              "$filter": {
+                "input": "$product.skus",
+                "as": "this",
+                "cond": {
+                  "$eq": [
+                    "$$this.sku_id",
+                    "$sku_id"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "available": {
+          "$subtract": [
+            "$quantity_on_hand",
+            "$quantity_reserved"
+          ]
+        }
+      },
+      "nReturned": 4037,
+      "executionTimeMillisEstimate": 182
+    },
+    {
+      "$sort": {
+        "sortKey": {
+          "warehouse.name": 1,
+          "available": 1,
+          "sku.sku_code": 1
+        }
+      },
+      "totalDataSizeSortedBytesEstimate": 21978589,
+      "usedDisk": false,
+      "spills": 0,
+      "spilledDataStorageSize": 0,
+      "nReturned": 4037,
+      "executionTimeMillisEstimate": 182
+    },
+    {
+      "$project": {
+        "warehouse_name": "$warehouse.name",
+        "sku_code": "$sku.sku_code",
+        "product_name": "$product.name",
+        "quantity_on_hand": {
+          "$convert": {
+            "input": "$quantity_on_hand",
+            "to": {
+              "$const": "string"
+            },
+            "format": {
+              "$const": "auto"
+            }
+          }
+        },
+        "quantity_reserved": {
+          "$convert": {
+            "input": "$quantity_reserved",
+            "to": {
+              "$const": "string"
+            },
+            "format": {
+              "$const": "auto"
+            }
+          }
+        },
+        "quantity_available": {
+          "$convert": {
+            "input": "$available",
+            "to": {
+              "$const": "string"
+            },
+            "format": {
+              "$const": "auto"
+            }
+          }
+        },
+        "_id": false
+      },
+      "nReturned": 4037,
+      "executionTimeMillisEstimate": 197
+    }
+  ],
+  "queryShapeHash": "3C680D9D7DC0878E3F42E716B36DE280CD94A818221D59DF6C480F75828EB22B",
+  "serverInfo": {
+    "host": "0624a139c535",
+    "port": 27017,
+    "version": "8.0.32",
+    "gitVersion": "f9eb55a7cc900f33a722a5b32a0fdbf54385c749"
+  },
+  "serverParameters": {
+    "internalQueryFacetBufferSizeBytes": 104857600,
+    "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+    "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+    "internalDocumentSourceGroupMaxMemoryBytes": 104857600,
+    "internalQueryMaxBlockingSortMemoryUsageBytes": 104857600,
+    "internalQueryProhibitBlockingMergeOnMongoS": 0,
+    "internalQueryMaxAddToSetBytes": 104857600,
+    "internalDocumentSourceSetWindowFieldsMaxMemoryBytes": 104857600,
+    "internalQueryFrameworkControl": "trySbeRestricted",
+    "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+  },
+  "command": {
+    "aggregate": "inventory",
+    "pipeline": [
+      {
+        "$match": {
+          "$expr": {
+            "$lte": [
+              {
+                "$subtract": [
+                  "$quantity_on_hand",
+                  "$quantity_reserved"
+                ]
+              },
+              25
+            ]
+          }
+        }
+      },
+      {
+        "$lookup": {
+          "from": "warehouses",
+          "localField": "warehouse_id",
+          "foreignField": "_id",
+          "as": "warehouse"
+        }
+      },
+      {
+        "$unwind": "$warehouse"
+      },
+      {
+        "$lookup": {
+          "from": "products",
+          "localField": "sku_id",
+          "foreignField": "skus.sku_id",
+          "as": "product"
+        }
+      },
+      {
+        "$unwind": "$product"
+      },
+      {
+        "$set": {
+          "sku": {
+            "$first": {
+              "$filter": {
+                "input": "$product.skus",
+                "cond": {
+                  "$eq": [
+                    "$$this.sku_id",
+                    "$sku_id"
+                  ]
+                }
+              }
+            }
+          },
+          "available": {
+            "$subtract": [
+              "$quantity_on_hand",
+              "$quantity_reserved"
+            ]
+          }
+        }
+      },
+      {
+        "$sort": {
+          "warehouse.name": 1,
+          "available": 1,
+          "sku.sku_code": 1
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "warehouse_name": "$warehouse.name",
+          "sku_code": "$sku.sku_code",
+          "product_name": "$product.name",
+          "quantity_on_hand": {
+            "$toString": "$quantity_on_hand"
+          },
+          "quantity_reserved": {
+            "$toString": "$quantity_reserved"
+          },
+          "quantity_available": {
+            "$toString": "$available"
+          }
+        }
+      }
+    ],
+    "cursor": {},
+    "$db": "dbperf"
+  },
+  "ok": 1,
+  "$clusterTime": {
+    "clusterTime": {
+      "$timestamp": {
+        "t": 1795588964,
+        "i": 1
+      }
+    },
+    "signature": {
+      "hash": {
+        "$binary": {
+          "base64": "5T4dY7LeLuT++CqXZ2fiArGuT7g=",
+          "subType": "00"
+        }
+      },
+      "keyId": 7711673673286943000
+    }
+  },
+  "operationTime": {
+    "$timestamp": {
+      "t": 1795588964,
+      "i": 1
+    }
+  }
+}

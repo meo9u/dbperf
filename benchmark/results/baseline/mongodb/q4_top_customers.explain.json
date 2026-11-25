@@ -1,0 +1,342 @@
+{
+  "explainVersion": "2",
+  "stages": [
+    {
+      "$cursor": {
+        "queryPlanner": {
+          "namespace": "dbperf.orders",
+          "parsedQuery": {
+            "status": {
+              "$eq": "delivered"
+            }
+          },
+          "indexFilterSet": false,
+          "queryHash": "447BE986",
+          "planCacheShapeHash": "447BE986",
+          "planCacheKey": "670AF7B6",
+          "optimizationTimeMillis": 0,
+          "maxIndexedOrSolutionsReached": false,
+          "maxIndexedAndSolutionsReached": false,
+          "maxScansToExplodeReached": false,
+          "prunedSimilarIndexes": false,
+          "winningPlan": {
+            "isCached": false,
+            "queryPlan": {
+              "stage": "GROUP",
+              "planNodeId": 3,
+              "inputStage": {
+                "stage": "COLLSCAN",
+                "planNodeId": 1,
+                "filter": {
+                  "status": {
+                    "$eq": "delivered"
+                  }
+                },
+                "direction": "forward"
+              }
+            },
+            "slotBasedPlan": {
+              "slots": "$$RESULT=s13 env: {  }",
+              "stages": "[3] project [s13 = newObj(\"_id\", s8, \"order_count\", s11, \"spent\", s12)] \n[3] project [s11 = (convert ( s9, int32) ?: s9), s12 = doubleDoubleSumFinalize(s10)] \n[3] group [s8] [s9 = count(), s10 = aggDoubleDoubleSum(s2)] spillSlots[s6, s7] mergingExprs[sum(s6), aggMergeDoubleDoubleSums(s7)] \n[3] project [s8 = (s1 ?: null)] \n[1] filter {traverseF(s3, lambda(l2.0) { ((move(l2.0) == \"delivered\") ?: false) }, false)} \n[1] scan s4 s5 none none none none none none lowPriority [s1 = customer_id, s2 = total_amount, s3 = status] @\"11acf787-4cb6-4056-82f6-db31889503a6\" true false "
+            }
+          },
+          "rejectedPlans": []
+        },
+        "executionStats": {
+          "executionSuccess": true,
+          "nReturned": 50000,
+          "executionTimeMillis": 1495,
+          "totalKeysExamined": 0,
+          "totalDocsExamined": 1000000,
+          "executionStages": {
+            "stage": "project",
+            "planNodeId": 3,
+            "nReturned": 50000,
+            "executionTimeMillisEstimate": 959,
+            "opens": 1,
+            "closes": 1,
+            "saveState": 67,
+            "restoreState": 67,
+            "isEOF": 1,
+            "projections": {
+              "13": "newObj(\"_id\", s8, \"order_count\", s11, \"spent\", s12) "
+            },
+            "inputStage": {
+              "stage": "project",
+              "planNodeId": 3,
+              "nReturned": 50000,
+              "executionTimeMillisEstimate": 958,
+              "opens": 1,
+              "closes": 1,
+              "saveState": 67,
+              "restoreState": 67,
+              "isEOF": 1,
+              "projections": {
+                "11": "(convert ( s9, int32) ?: s9) ",
+                "12": "doubleDoubleSumFinalize(s10) "
+              },
+              "inputStage": {
+                "stage": "group",
+                "planNodeId": 3,
+                "nReturned": 50000,
+                "executionTimeMillisEstimate": 934,
+                "opens": 1,
+                "closes": 1,
+                "saveState": 67,
+                "restoreState": 67,
+                "isEOF": 1,
+                "groupBySlots": [
+                  8
+                ],
+                "expressions": {
+                  "9": "count() ",
+                  "10": "aggDoubleDoubleSum(s2) ",
+                  "initExprs": {
+                    "9": null,
+                    "10": null
+                  }
+                },
+                "mergingExprs": {
+                  "6": "sum(s6) ",
+                  "7": "aggMergeDoubleDoubleSums(s7) "
+                },
+                "usedDisk": false,
+                "spills": 0,
+                "spilledBytes": 0,
+                "spilledRecords": 0,
+                "spilledDataStorageSize": 0,
+                "inputStage": {
+                  "stage": "project",
+                  "planNodeId": 3,
+                  "nReturned": 960500,
+                  "executionTimeMillisEstimate": 344,
+                  "opens": 1,
+                  "closes": 1,
+                  "saveState": 67,
+                  "restoreState": 67,
+                  "isEOF": 1,
+                  "projections": {
+                    "8": "(s1 ?: null) "
+                  },
+                  "inputStage": {
+                    "stage": "filter",
+                    "planNodeId": 1,
+                    "nReturned": 960500,
+                    "executionTimeMillisEstimate": 336,
+                    "opens": 1,
+                    "closes": 1,
+                    "saveState": 67,
+                    "restoreState": 67,
+                    "isEOF": 1,
+                    "numTested": 1000000,
+                    "filter": "traverseF(s3, lambda(l2.0) { ((move(l2.0) == \"delivered\") ?: false) }, false) ",
+                    "inputStage": {
+                      "stage": "scan",
+                      "planNodeId": 1,
+                      "nReturned": 1000000,
+                      "executionTimeMillisEstimate": 305,
+                      "opens": 1,
+                      "closes": 1,
+                      "saveState": 67,
+                      "restoreState": 67,
+                      "isEOF": 1,
+                      "numReads": 1000000,
+                      "recordSlot": 4,
+                      "recordIdSlot": 5,
+                      "scanFieldNames": [
+                        "customer_id",
+                        "total_amount",
+                        "status"
+                      ],
+                      "scanFieldSlots": [
+                        1,
+                        2,
+                        3
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "nReturned": 50000,
+      "executionTimeMillisEstimate": 960
+    },
+    {
+      "$lookup": {
+        "from": "customers",
+        "as": "customer",
+        "localField": "_id",
+        "foreignField": "_id",
+        "unwinding": {
+          "preserveNullAndEmptyArrays": false
+        }
+      },
+      "totalDocsExamined": 50000,
+      "totalKeysExamined": 50000,
+      "collectionScans": 0,
+      "indexesUsed": [
+        "_id_"
+      ],
+      "nReturned": 50000,
+      "executionTimeMillisEstimate": 1495
+    },
+    {
+      "$sort": {
+        "sortKey": {
+          "spent": -1,
+          "customer.email": 1
+        },
+        "limit": 20
+      },
+      "totalDataSizeSortedBytesEstimate": 18272,
+      "usedDisk": false,
+      "spills": 0,
+      "spilledDataStorageSize": 0,
+      "nReturned": 20,
+      "executionTimeMillisEstimate": 1495
+    },
+    {
+      "$project": {
+        "email": "$customer.email",
+        "order_count": {
+          "$convert": {
+            "input": "$order_count",
+            "to": {
+              "$const": "string"
+            },
+            "format": {
+              "$const": "auto"
+            }
+          }
+        },
+        "total_spent": {
+          "$convert": {
+            "input": {
+              "$round": [
+                "$spent",
+                {
+                  "$const": 2
+                }
+              ]
+            },
+            "to": {
+              "$const": "string"
+            },
+            "format": {
+              "$const": "auto"
+            }
+          }
+        },
+        "_id": false
+      },
+      "nReturned": 20,
+      "executionTimeMillisEstimate": 1495
+    }
+  ],
+  "queryShapeHash": "C029F35BD8CEF8B7AC070D66B8BF7CFF31493525DD7DC5839C1F261526EFB4FF",
+  "serverInfo": {
+    "host": "0624a139c535",
+    "port": 27017,
+    "version": "8.0.32",
+    "gitVersion": "f9eb55a7cc900f33a722a5b32a0fdbf54385c749"
+  },
+  "serverParameters": {
+    "internalQueryFacetBufferSizeBytes": 104857600,
+    "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+    "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+    "internalDocumentSourceGroupMaxMemoryBytes": 104857600,
+    "internalQueryMaxBlockingSortMemoryUsageBytes": 104857600,
+    "internalQueryProhibitBlockingMergeOnMongoS": 0,
+    "internalQueryMaxAddToSetBytes": 104857600,
+    "internalDocumentSourceSetWindowFieldsMaxMemoryBytes": 104857600,
+    "internalQueryFrameworkControl": "trySbeRestricted",
+    "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+  },
+  "command": {
+    "aggregate": "orders",
+    "pipeline": [
+      {
+        "$match": {
+          "status": "delivered"
+        }
+      },
+      {
+        "$group": {
+          "_id": "$customer_id",
+          "order_count": {
+            "$sum": 1
+          },
+          "spent": {
+            "$sum": "$total_amount"
+          }
+        }
+      },
+      {
+        "$lookup": {
+          "from": "customers",
+          "localField": "_id",
+          "foreignField": "_id",
+          "as": "customer"
+        }
+      },
+      {
+        "$unwind": "$customer"
+      },
+      {
+        "$sort": {
+          "spent": -1,
+          "customer.email": 1
+        }
+      },
+      {
+        "$limit": 20
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "email": "$customer.email",
+          "order_count": {
+            "$toString": "$order_count"
+          },
+          "total_spent": {
+            "$toString": {
+              "$round": [
+                "$spent",
+                2
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "cursor": {},
+    "$db": "dbperf"
+  },
+  "ok": 1,
+  "$clusterTime": {
+    "clusterTime": {
+      "$timestamp": {
+        "t": 1795588954,
+        "i": 1
+      }
+    },
+    "signature": {
+      "hash": {
+        "$binary": {
+          "base64": "y79+KC1mX1VLj2383Nz1bu51mTI=",
+          "subType": "00"
+        }
+      },
+      "keyId": 7711673673286943000
+    }
+  },
+  "operationTime": {
+    "$timestamp": {
+      "t": 1795588954,
+      "i": 1
+    }
+  }
+}

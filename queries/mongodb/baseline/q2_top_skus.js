@@ -1,7 +1,7 @@
 // q2 | Top SKUs by units sold in delivered orders created in [FROM_DATE, TO_DATE) (UTC), top TOP_N.
-// Parameters: FROM_DATE, TO_DATE, TOP_N. Output columns: sku_code, product_name, units_sold, revenue
-const FROM_DATE = new Date("2020-01-01T00:00:00Z"); // inclusive
-const TO_DATE = new Date("2020-07-01T00:00:00Z"); // exclusive
+// Parameters: FROM_DATE, TO_DATE, TOP_N. Output columns: sku_code, units_sold, revenue
+const FROM_DATE = new Date("2019-01-01T00:00:00Z"); // inclusive
+const TO_DATE = new Date("2020-01-01T00:00:00Z"); // exclusive
 const TOP_N = 20;
 const d = db.getSiblingDB((typeof process !== "undefined" && process.env.MONGO_DB) || "dbperf");
 
@@ -24,11 +24,10 @@ const pipeline = [
   { $project: {
     _id: 0,
     sku_code: "$sku.sku_code",
-    product_name: "$product.name",
     units_sold: { $toString: "$units" },
     revenue: { $toString: { $round: ["$revenue", 2] } },
   } },
 ];
 
-print(["sku_code", "product_name", "units_sold", "revenue"].join("\t"));
-d.orders.aggregate(pipeline).forEach((r) => print([r.sku_code, r.product_name, r.units_sold, money(r.revenue)].join("\t")));
+print(["sku_code", "units_sold", "revenue"].join("\t"));
+d.orders.aggregate(pipeline).forEach((r) => print([r.sku_code, r.units_sold, money(r.revenue)].join("\t")));

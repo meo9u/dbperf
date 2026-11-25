@@ -1,5 +1,5 @@
 // q1 | Revenue by month: number of delivered orders and total revenue per calendar month (UTC).
-// Parameters: none (all delivered orders). Output columns: month, order_count, revenue
+// Parameters: none (all delivered orders). Output columns: order_month, order_count, revenue
 const d = db.getSiblingDB((typeof process !== "undefined" && process.env.MONGO_DB) || "dbperf");
 
 // Money arrives as a string from $toString; pad to exactly 2 decimals (same helper as seed/checks).
@@ -19,11 +19,11 @@ const pipeline = [
   { $sort: { _id: 1 } },
   { $project: {
     _id: 0,
-    month: "$_id",
+    order_month: "$_id",
     order_count: { $toString: "$order_count" },
     revenue: { $toString: { $round: ["$revenue", 2] } },
   } },
 ];
 
-print(["month", "order_count", "revenue"].join("\t"));
-d.orders.aggregate(pipeline).forEach((r) => print([r.month, r.order_count, money(r.revenue)].join("\t")));
+print(["order_month", "order_count", "revenue"].join("\t"));
+d.orders.aggregate(pipeline).forEach((r) => print([r.order_month, r.order_count, money(r.revenue)].join("\t")));

@@ -1,11 +1,11 @@
-// q5 | Low-stock report: (warehouse, SKU) rows whose available stock (on_hand - reserved) is below LOW_STOCK_THRESHOLD.
+// q5 | Low-stock report: (warehouse, SKU) rows whose available stock (on_hand - reserved) is at or below LOW_STOCK_THRESHOLD.
 // Parameters: LOW_STOCK_THRESHOLD. Output columns: warehouse_name, sku_code, product_name, quantity_on_hand, quantity_reserved, quantity_available
-const LOW_STOCK_THRESHOLD = 10;
+const LOW_STOCK_THRESHOLD = 25;
 
 const d = db.getSiblingDB((typeof process !== "undefined" && process.env.MONGO_DB) || "dbperf");
 
 const pipeline = [
-  { $match: { $expr: { $lt: [{ $subtract: ["$quantity_on_hand", "$quantity_reserved"] }, LOW_STOCK_THRESHOLD] } } },
+  { $match: { $expr: { $lte: [{ $subtract: ["$quantity_on_hand", "$quantity_reserved"] }, LOW_STOCK_THRESHOLD] } } },
   { $lookup: { from: "warehouses", localField: "warehouse_id", foreignField: "_id", as: "warehouse" } },
   { $unwind: "$warehouse" },
   { $lookup: { from: "products", localField: "sku_id", foreignField: "skus.sku_id", as: "product" } },

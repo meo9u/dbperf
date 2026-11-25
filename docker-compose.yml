@@ -13,6 +13,8 @@ services:
       # secure_file_priv directory, shared with seed-mysql, which stages the seed CSVs here
       # for server-side LOAD DATA INFILE (secure_file_priv stays at its default).
       - mysql_files:/var/lib/mysql-files
+    # Match MongoDB's default WiredTiger cache (50% of (4g - 1g) = 1536 MB) so both engines get the same cache.
+    command: ["--innodb-buffer-pool-size=1536M"]
     cpus: "2"
     mem_limit: "4g"
     healthcheck:

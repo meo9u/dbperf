@@ -1,5 +1,5 @@
 // q4 | Top customers by total spend on delivered orders, top TOP_N.
-// Parameters: TOP_N. Output columns: email, full_name, order_count, total_spent
+// Parameters: TOP_N. Output columns: email, order_count, total_spent
 const TOP_N = 20;
 const d = db.getSiblingDB((typeof process !== "undefined" && process.env.MONGO_DB) || "dbperf");
 
@@ -20,11 +20,10 @@ const pipeline = [
   { $project: {
     _id: 0,
     email: "$customer.email",
-    full_name: "$customer.full_name",
     order_count: { $toString: "$order_count" },
     total_spent: { $toString: { $round: ["$spent", 2] } },
   } },
 ];
 
-print(["email", "full_name", "order_count", "total_spent"].join("\t"));
-d.orders.aggregate(pipeline).forEach((r) => print([r.email, r.full_name, r.order_count, money(r.total_spent)].join("\t")));
+print(["email", "order_count", "total_spent"].join("\t"));
+d.orders.aggregate(pipeline).forEach((r) => print([r.email, r.order_count, money(r.total_spent)].join("\t")));
