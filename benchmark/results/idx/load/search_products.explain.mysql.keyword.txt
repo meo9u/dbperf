@@ -1,0 +1,8 @@
+-> Limit: 20 row(s)  (actual time=0.864..0.865 rows=20 loops=1)
+    -> Sort row IDs: s.sku_code, limit input to 20 row(s) per chunk  (actual time=0.863..0.864 rows=20 loops=1)
+        -> Table scan on <temporary>  (cost=135..138 rows=121) (actual time=0.801..0.816 rows=206 loops=1)
+            -> Temporary table  (cost=134..134 rows=121) (actual time=0.8..0.8 rows=206 loops=1)
+                -> Nested loop inner join  (cost=107 rows=121) (actual time=0.0583..0.699 rows=206 loops=1)
+                    -> Filter: (p.`name` like '%top%')  (cost=64.5 rows=27.4) (actual time=0.0469..0.327 rows=56 loops=1)
+                        -> Index lookup on p using idx_product_category_status (category_id = (select #2), status = 'active')  (cost=64.5 rows=247) (actual time=0.0405..0.279 rows=247 loops=1)
+                    -> Index lookup on s using idx_sku_search (product_id = p.product_id, status = 'active')  (cost=1.11 rows=4.4) (actual time=0.00356..0.0063 rows=3.68 loops=56)

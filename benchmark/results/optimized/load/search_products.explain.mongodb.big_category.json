@@ -1,0 +1,324 @@
+{
+  "explainVersion": "1",
+  "stages": [
+    {
+      "$cursor": {
+        "queryPlanner": {
+          "namespace": "dbperf.products",
+          "parsedQuery": {
+            "$and": [
+              {
+                "skus": {
+                  "$elemMatch": {
+                    "status": {
+                      "$eq": "active"
+                    }
+                  }
+                }
+              },
+              {
+                "category_id": {
+                  "$eq": {
+                    "$oid": "ca0100000000000000000008"
+                  }
+                }
+              },
+              {
+                "status": {
+                  "$eq": "active"
+                }
+              }
+            ]
+          },
+          "indexFilterSet": false,
+          "queryHash": "7946B00F",
+          "planCacheShapeHash": "7946B00F",
+          "planCacheKey": "53FCA2E4",
+          "optimizationTimeMillis": 0,
+          "maxIndexedOrSolutionsReached": false,
+          "maxIndexedAndSolutionsReached": false,
+          "maxScansToExplodeReached": false,
+          "prunedSimilarIndexes": false,
+          "winningPlan": {
+            "isCached": false,
+            "stage": "FETCH",
+            "filter": {
+              "skus": {
+                "$elemMatch": {
+                  "status": {
+                    "$eq": "active"
+                  }
+                }
+              }
+            },
+            "inputStage": {
+              "stage": "IXSCAN",
+              "keyPattern": {
+                "category_id": 1,
+                "status": 1
+              },
+              "indexName": "idx_products_category_status",
+              "isMultiKey": false,
+              "multiKeyPaths": {
+                "category_id": [],
+                "status": []
+              },
+              "isUnique": false,
+              "isSparse": false,
+              "isPartial": false,
+              "indexVersion": 2,
+              "direction": "forward",
+              "indexBounds": {
+                "category_id": [
+                  "[ObjectId('ca0100000000000000000008'), ObjectId('ca0100000000000000000008')]"
+                ],
+                "status": [
+                  "[\"active\", \"active\"]"
+                ]
+              }
+            }
+          },
+          "rejectedPlans": [
+            {
+              "isCached": false,
+              "stage": "FETCH",
+              "filter": {
+                "skus": {
+                  "$elemMatch": {
+                    "status": {
+                      "$eq": "active"
+                    }
+                  }
+                }
+              },
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "category_id": 1,
+                  "status": 1,
+                  "skus.variant_attributes.color": 1,
+                  "skus.current_price": 1
+                },
+                "indexName": "idx_products_search",
+                "isMultiKey": true,
+                "multiKeyPaths": {
+                  "category_id": [],
+                  "status": [],
+                  "skus.variant_attributes.color": [
+                    "skus"
+                  ],
+                  "skus.current_price": [
+                    "skus"
+                  ]
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "category_id": [
+                    "[ObjectId('ca0100000000000000000008'), ObjectId('ca0100000000000000000008')]"
+                  ],
+                  "status": [
+                    "[\"active\", \"active\"]"
+                  ],
+                  "skus.variant_attributes.color": [
+                    "[MinKey, MaxKey]"
+                  ],
+                  "skus.current_price": [
+                    "[MinKey, MaxKey]"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "executionStats": {
+          "executionSuccess": true,
+          "nReturned": 1446,
+          "executionTimeMillis": 7,
+          "totalKeysExamined": 1456,
+          "totalDocsExamined": 1456,
+          "executionStages": {
+            "isCached": false,
+            "stage": "FETCH",
+            "filter": {
+              "skus": {
+                "$elemMatch": {
+                  "status": {
+                    "$eq": "active"
+                  }
+                }
+              }
+            },
+            "nReturned": 1446,
+            "executionTimeMillisEstimate": 0,
+            "works": 1457,
+            "advanced": 1446,
+            "needTime": 10,
+            "needYield": 0,
+            "saveState": 6,
+            "restoreState": 6,
+            "isEOF": 1,
+            "docsExamined": 1456,
+            "alreadyHasObj": 0,
+            "inputStage": {
+              "stage": "IXSCAN",
+              "nReturned": 1456,
+              "executionTimeMillisEstimate": 0,
+              "works": 1457,
+              "advanced": 1456,
+              "needTime": 0,
+              "needYield": 0,
+              "saveState": 6,
+              "restoreState": 6,
+              "isEOF": 1,
+              "keyPattern": {
+                "category_id": 1,
+                "status": 1
+              },
+              "indexName": "idx_products_category_status",
+              "isMultiKey": false,
+              "multiKeyPaths": {
+                "category_id": [],
+                "status": []
+              },
+              "isUnique": false,
+              "isSparse": false,
+              "isPartial": false,
+              "indexVersion": 2,
+              "direction": "forward",
+              "indexBounds": {
+                "category_id": [
+                  "[ObjectId('ca0100000000000000000008'), ObjectId('ca0100000000000000000008')]"
+                ],
+                "status": [
+                  "[\"active\", \"active\"]"
+                ]
+              },
+              "keysExamined": 1456,
+              "seeks": 1,
+              "dupsTested": 0,
+              "dupsDropped": 0
+            }
+          }
+        }
+      },
+      "nReturned": 1446,
+      "executionTimeMillisEstimate": 5
+    },
+    {
+      "$unwind": {
+        "path": "$skus"
+      },
+      "nReturned": 8061,
+      "executionTimeMillisEstimate": 5
+    },
+    {
+      "$match": {
+        "skus.status": {
+          "$eq": "active"
+        }
+      },
+      "nReturned": 7818,
+      "executionTimeMillisEstimate": 5
+    },
+    {
+      "$sort": {
+        "sortKey": {
+          "skus.sku_code": 1
+        },
+        "limit": 20
+      },
+      "totalDataSizeSortedBytesEstimate": 20255,
+      "usedDisk": false,
+      "spills": 0,
+      "spilledDataStorageSize": 0,
+      "nReturned": 20,
+      "executionTimeMillisEstimate": 5
+    }
+  ],
+  "queryShapeHash": "344A3DC495BDC767366CB906737AF24A876D89A2FF736F319CE5283C2E78A99B",
+  "serverInfo": {
+    "host": "0624a139c535",
+    "port": 27017,
+    "version": "8.0.32",
+    "gitVersion": "f9eb55a7cc900f33a722a5b32a0fdbf54385c749"
+  },
+  "serverParameters": {
+    "internalQueryFacetBufferSizeBytes": 104857600,
+    "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+    "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+    "internalDocumentSourceGroupMaxMemoryBytes": 104857600,
+    "internalQueryMaxBlockingSortMemoryUsageBytes": 104857600,
+    "internalQueryProhibitBlockingMergeOnMongoS": 0,
+    "internalQueryMaxAddToSetBytes": 104857600,
+    "internalDocumentSourceSetWindowFieldsMaxMemoryBytes": 104857600,
+    "internalQueryFrameworkControl": "trySbeRestricted",
+    "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+  },
+  "command": {
+    "aggregate": "products",
+    "pipeline": [
+      {
+        "$match": {
+          "category_id": {
+            "$oid": "ca0100000000000000000008"
+          },
+          "status": "active",
+          "skus": {
+            "$elemMatch": {
+              "status": "active"
+            }
+          }
+        }
+      },
+      {
+        "$unwind": "$skus"
+      },
+      {
+        "$match": {
+          "skus.status": "active"
+        }
+      },
+      {
+        "$sort": {
+          "skus.sku_code": 1
+        }
+      },
+      {
+        "$skip": 0
+      },
+      {
+        "$limit": 20
+      }
+    ],
+    "cursor": {},
+    "$db": "dbperf"
+  },
+  "ok": 1,
+  "$clusterTime": {
+    "clusterTime": {
+      "$timestamp": {
+        "t": 1795596711,
+        "i": 10
+      }
+    },
+    "signature": {
+      "hash": {
+        "$binary": {
+          "base64": "q7I4EfMTt7C693GhVuVPuzu7/WM=",
+          "subType": "00"
+        }
+      },
+      "keyId": 7711673673286943000
+    }
+  },
+  "operationTime": {
+    "$timestamp": {
+      "t": 1795596711,
+      "i": 10
+    }
+  }
+}

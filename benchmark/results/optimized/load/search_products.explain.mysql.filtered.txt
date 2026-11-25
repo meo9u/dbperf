@@ -1,0 +1,7 @@
+-> Limit/Offset: 20/60 row(s)  (actual time=2.48..2.48 rows=0 loops=1)
+    -> Sort row IDs: s.sku_code, limit input to 80 row(s) per chunk  (actual time=2.48..2.48 rows=27 loops=1)
+        -> Table scan on <temporary>  (cost=3710..3744 rows=2529) (actual time=2.46..2.46 rows=27 loops=1)
+            -> Temporary table  (cost=3710..3710 rows=2529) (actual time=2.46..2.46 rows=27 loops=1)
+                -> Nested loop inner join  (cost=3127 rows=2529) (actual time=0.155..2.44 rows=27 loops=1)
+                    -> Index lookup on p using idx_product_category_status (category_id = (select #2), status = 'active')  (cost=218 rows=1456) (actual time=0.086..0.897 rows=1456 loops=1)
+                    -> Index lookup on s using idx_sku_search (product_id = p.product_id, status = 'active', color = 'Light Pink'), with index condition: (s.current_price between 50 and 500)  (cost=0.434 rows=1.74) (actual time=979e-6..984e-6 rows=0.0185 loops=1456)

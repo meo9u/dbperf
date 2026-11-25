@@ -1,0 +1,187 @@
+{
+  "scenario": "search_products",
+  "phase": "idx",
+  "date_utc": "2026-11-25 08:13:32",
+  "variant": "baseline",
+  "levels_vus": [
+    4,
+    8,
+    16,
+    32,
+    64
+  ],
+  "duration_per_level": "45s",
+  "warmup": "20s",
+  "k6": {
+    "image": "dbperf-k6:local",
+    "cpus": 2.0,
+    "mem_limit_mb": 2048
+  },
+  "mysql": {
+    "version": "9.7.2",
+    "buffer_pool_mb": 1536.0,
+    "innodb_flush_log_at_trx_commit": 1,
+    "sync_binlog": 1,
+    "log_bin": 1,
+    "buffer_pool_pages_used_at_start": 59957,
+    "buffer_pool_pages_total": 98304,
+    "row_counts": {
+      "category": 19,
+      "customer": 50000,
+      "inventory": 321410,
+      "order_detail": 3117170,
+      "orders": 1000000,
+      "payment": 1038361,
+      "product": 4000,
+      "sku": 20000,
+      "warehouse": 20
+    },
+    "sizes": {
+      "category": {
+        "data_mb": 0.0,
+        "index_mb": 0.0
+      },
+      "customer": {
+        "data_mb": 7.5,
+        "index_mb": 2.5
+      },
+      "inventory": {
+        "data_mb": 16.5,
+        "index_mb": 12.0
+      },
+      "order_detail": {
+        "data_mb": 159.7,
+        "index_mb": 172.8
+      },
+      "orders": {
+        "data_mb": 118.6,
+        "index_mb": 19.5
+      },
+      "payment": {
+        "data_mb": 41.6,
+        "index_mb": 13.5
+      },
+      "product": {
+        "data_mb": 1.5,
+        "index_mb": 0.1
+      },
+      "sku": {
+        "data_mb": 5.5,
+        "index_mb": 4.0
+      },
+      "warehouse": {
+        "data_mb": 0.0,
+        "index_mb": 0.0
+      }
+    },
+    "indexes": {
+      "category": [
+        "PRIMARY(category_id)"
+      ],
+      "customer": [
+        "PRIMARY(customer_id)",
+        "uq_customer_email(email)"
+      ],
+      "inventory": [
+        "fk_inventory_warehouse(warehouse_id)",
+        "PRIMARY(inventory_id)",
+        "uq_inventory_sku_warehouse(sku_id,warehouse_id)"
+      ],
+      "order_detail": [
+        "fk_order_detail_order(order_id)",
+        "fk_order_detail_sku(sku_id)",
+        "fk_order_detail_warehouse(warehouse_id)",
+        "PRIMARY(order_detail_id)"
+      ],
+      "orders": [
+        "fk_orders_customer(customer_id)",
+        "PRIMARY(order_id)"
+      ],
+      "payment": [
+        "fk_payment_order(order_id)",
+        "PRIMARY(payment_id)"
+      ],
+      "product": [
+        "idx_product_category_status(category_id,status)",
+        "PRIMARY(product_id)"
+      ],
+      "sku": [
+        "idx_sku_search(product_id,status,color,current_price,sku_code)",
+        "PRIMARY(sku_id)",
+        "uq_sku_code(sku_code)"
+      ],
+      "warehouse": [
+        "PRIMARY(warehouse_id)"
+      ]
+    },
+    "mem_limit_mb": 4096,
+    "cpus": 2.0
+  },
+  "mongodb": {
+    "version": "8.0.32",
+    "wt_cache_max_mb": 1536,
+    "wt_cache_used_at_start_mb": 1189.7557468414307,
+    "row_counts": {
+      "orders": 1000000,
+      "customers": 50000,
+      "inventory": 321410,
+      "warehouses": 20,
+      "categories": 19,
+      "products": 4000
+    },
+    "sizes": {
+      "orders": {
+        "data_mb": 237,
+        "index_mb": 25.8
+      },
+      "customers": {
+        "data_mb": 8.4,
+        "index_mb": 5.5
+      },
+      "inventory": {
+        "data_mb": 22.1,
+        "index_mb": 24.2
+      },
+      "warehouses": {
+        "data_mb": 0,
+        "index_mb": 0
+      },
+      "categories": {
+        "data_mb": 0,
+        "index_mb": 0
+      },
+      "products": {
+        "data_mb": 3.2,
+        "index_mb": 3.1
+      }
+    },
+    "indexes": {
+      "orders": [
+        "_id_"
+      ],
+      "customers": [
+        "_id_",
+        "uq_customers_email"
+      ],
+      "inventory": [
+        "_id_",
+        "uq_inventory_sku_warehouse"
+      ],
+      "warehouses": [
+        "_id_"
+      ],
+      "categories": [
+        "_id_"
+      ],
+      "products": [
+        "_id_",
+        "uq_products_sku_id",
+        "uq_products_sku_code",
+        "idx_products_category_status",
+        "idx_products_search"
+      ]
+    },
+    "mem_limit_mb": 4096,
+    "cpus": 2.0
+  }
+}

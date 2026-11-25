@@ -1,0 +1,448 @@
+{
+  "explainVersion": "1",
+  "stages": [
+    {
+      "$cursor": {
+        "queryPlanner": {
+          "namespace": "dbperf.products",
+          "parsedQuery": {
+            "$and": [
+              {
+                "skus": {
+                  "$elemMatch": {
+                    "$and": [
+                      {
+                        "status": {
+                          "$eq": "active"
+                        }
+                      },
+                      {
+                        "variant_attributes.color": {
+                          "$eq": "Light Pink"
+                        }
+                      },
+                      {
+                        "current_price": {
+                          "$lte": 500
+                        }
+                      },
+                      {
+                        "current_price": {
+                          "$gte": 50
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              {
+                "category_id": {
+                  "$eq": {
+                    "$oid": "ca0100000000000000000008"
+                  }
+                }
+              },
+              {
+                "status": {
+                  "$eq": "active"
+                }
+              }
+            ]
+          },
+          "indexFilterSet": false,
+          "queryHash": "01729CB2",
+          "planCacheShapeHash": "01729CB2",
+          "planCacheKey": "B05B6F33",
+          "optimizationTimeMillis": 0,
+          "maxIndexedOrSolutionsReached": false,
+          "maxIndexedAndSolutionsReached": false,
+          "maxScansToExplodeReached": false,
+          "prunedSimilarIndexes": false,
+          "winningPlan": {
+            "isCached": false,
+            "stage": "FETCH",
+            "filter": {
+              "skus": {
+                "$elemMatch": {
+                  "$and": [
+                    {
+                      "variant_attributes.color": {
+                        "$eq": "Light Pink"
+                      }
+                    },
+                    {
+                      "current_price": {
+                        "$lte": 500
+                      }
+                    },
+                    {
+                      "current_price": {
+                        "$gte": 50
+                      }
+                    },
+                    {
+                      "status": {
+                        "$eq": "active"
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "inputStage": {
+              "stage": "IXSCAN",
+              "keyPattern": {
+                "category_id": 1,
+                "status": 1,
+                "skus.variant_attributes.color": 1,
+                "skus.current_price": 1
+              },
+              "indexName": "idx_products_search",
+              "isMultiKey": true,
+              "multiKeyPaths": {
+                "category_id": [],
+                "status": [],
+                "skus.variant_attributes.color": [
+                  "skus"
+                ],
+                "skus.current_price": [
+                  "skus"
+                ]
+              },
+              "isUnique": false,
+              "isSparse": false,
+              "isPartial": false,
+              "indexVersion": 2,
+              "direction": "forward",
+              "indexBounds": {
+                "category_id": [
+                  "[ObjectId('ca0100000000000000000008'), ObjectId('ca0100000000000000000008')]"
+                ],
+                "status": [
+                  "[\"active\", \"active\"]"
+                ],
+                "skus.variant_attributes.color": [
+                  "[\"Light Pink\", \"Light Pink\"]"
+                ],
+                "skus.current_price": [
+                  "[50, 500]"
+                ]
+              }
+            }
+          },
+          "rejectedPlans": [
+            {
+              "isCached": false,
+              "stage": "FETCH",
+              "filter": {
+                "skus": {
+                  "$elemMatch": {
+                    "$and": [
+                      {
+                        "current_price": {
+                          "$lte": 500
+                        }
+                      },
+                      {
+                        "current_price": {
+                          "$gte": 50
+                        }
+                      },
+                      {
+                        "status": {
+                          "$eq": "active"
+                        }
+                      },
+                      {
+                        "variant_attributes.color": {
+                          "$eq": "Light Pink"
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "inputStage": {
+                "stage": "IXSCAN",
+                "keyPattern": {
+                  "category_id": 1,
+                  "status": 1
+                },
+                "indexName": "idx_products_category_status",
+                "isMultiKey": false,
+                "multiKeyPaths": {
+                  "category_id": [],
+                  "status": []
+                },
+                "isUnique": false,
+                "isSparse": false,
+                "isPartial": false,
+                "indexVersion": 2,
+                "direction": "forward",
+                "indexBounds": {
+                  "category_id": [
+                    "[ObjectId('ca0100000000000000000008'), ObjectId('ca0100000000000000000008')]"
+                  ],
+                  "status": [
+                    "[\"active\", \"active\"]"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "executionStats": {
+          "executionSuccess": true,
+          "nReturned": 26,
+          "executionTimeMillis": 0,
+          "totalKeysExamined": 30,
+          "totalDocsExamined": 29,
+          "executionStages": {
+            "isCached": false,
+            "stage": "FETCH",
+            "filter": {
+              "skus": {
+                "$elemMatch": {
+                  "$and": [
+                    {
+                      "variant_attributes.color": {
+                        "$eq": "Light Pink"
+                      }
+                    },
+                    {
+                      "current_price": {
+                        "$lte": 500
+                      }
+                    },
+                    {
+                      "current_price": {
+                        "$gte": 50
+                      }
+                    },
+                    {
+                      "status": {
+                        "$eq": "active"
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "nReturned": 26,
+            "executionTimeMillisEstimate": 1,
+            "works": 32,
+            "advanced": 26,
+            "needTime": 4,
+            "needYield": 0,
+            "saveState": 1,
+            "restoreState": 1,
+            "isEOF": 1,
+            "docsExamined": 29,
+            "alreadyHasObj": 0,
+            "inputStage": {
+              "stage": "IXSCAN",
+              "nReturned": 29,
+              "executionTimeMillisEstimate": 1,
+              "works": 31,
+              "advanced": 29,
+              "needTime": 1,
+              "needYield": 0,
+              "saveState": 1,
+              "restoreState": 1,
+              "isEOF": 1,
+              "keyPattern": {
+                "category_id": 1,
+                "status": 1,
+                "skus.variant_attributes.color": 1,
+                "skus.current_price": 1
+              },
+              "indexName": "idx_products_search",
+              "isMultiKey": true,
+              "multiKeyPaths": {
+                "category_id": [],
+                "status": [],
+                "skus.variant_attributes.color": [
+                  "skus"
+                ],
+                "skus.current_price": [
+                  "skus"
+                ]
+              },
+              "isUnique": false,
+              "isSparse": false,
+              "isPartial": false,
+              "indexVersion": 2,
+              "direction": "forward",
+              "indexBounds": {
+                "category_id": [
+                  "[ObjectId('ca0100000000000000000008'), ObjectId('ca0100000000000000000008')]"
+                ],
+                "status": [
+                  "[\"active\", \"active\"]"
+                ],
+                "skus.variant_attributes.color": [
+                  "[\"Light Pink\", \"Light Pink\"]"
+                ],
+                "skus.current_price": [
+                  "[50, 500]"
+                ]
+              },
+              "keysExamined": 30,
+              "seeks": 1,
+              "dupsTested": 30,
+              "dupsDropped": 1
+            }
+          }
+        }
+      },
+      "nReturned": 26,
+      "executionTimeMillisEstimate": 0
+    },
+    {
+      "$unwind": {
+        "path": "$skus"
+      },
+      "nReturned": 251,
+      "executionTimeMillisEstimate": 0
+    },
+    {
+      "$match": {
+        "$and": [
+          {
+            "skus.status": {
+              "$eq": "active"
+            }
+          },
+          {
+            "skus.current_price": {
+              "$gte": 50
+            }
+          },
+          {
+            "skus.current_price": {
+              "$lte": 500
+            }
+          },
+          {
+            "skus.variant_attributes.color": {
+              "$eq": "Light Pink"
+            }
+          }
+        ]
+      },
+      "nReturned": 27,
+      "executionTimeMillisEstimate": 0
+    },
+    {
+      "$sort": {
+        "sortKey": {
+          "skus.sku_code": 1
+        },
+        "limit": 80
+      },
+      "totalDataSizeSortedBytesEstimate": 27978,
+      "usedDisk": false,
+      "spills": 0,
+      "spilledDataStorageSize": 0,
+      "nReturned": 27,
+      "executionTimeMillisEstimate": 0
+    },
+    {
+      "$skip": 60,
+      "nReturned": 0,
+      "executionTimeMillisEstimate": 0
+    }
+  ],
+  "queryShapeHash": "E8CE3BFC523DA005A5975A9D6AE41E78C10BE6FB6D0F1D8CBC6B34F7FC34B751",
+  "serverInfo": {
+    "host": "0624a139c535",
+    "port": 27017,
+    "version": "8.0.32",
+    "gitVersion": "f9eb55a7cc900f33a722a5b32a0fdbf54385c749"
+  },
+  "serverParameters": {
+    "internalQueryFacetBufferSizeBytes": 104857600,
+    "internalQueryFacetMaxOutputDocSizeBytes": 104857600,
+    "internalLookupStageIntermediateDocumentMaxSizeBytes": 104857600,
+    "internalDocumentSourceGroupMaxMemoryBytes": 104857600,
+    "internalQueryMaxBlockingSortMemoryUsageBytes": 104857600,
+    "internalQueryProhibitBlockingMergeOnMongoS": 0,
+    "internalQueryMaxAddToSetBytes": 104857600,
+    "internalDocumentSourceSetWindowFieldsMaxMemoryBytes": 104857600,
+    "internalQueryFrameworkControl": "trySbeRestricted",
+    "internalQueryPlannerIgnoreIndexWithCollationForRegex": 1
+  },
+  "command": {
+    "aggregate": "products",
+    "pipeline": [
+      {
+        "$match": {
+          "category_id": {
+            "$oid": "ca0100000000000000000008"
+          },
+          "status": "active",
+          "skus": {
+            "$elemMatch": {
+              "status": "active",
+              "current_price": {
+                "$gte": 50,
+                "$lte": 500
+              },
+              "variant_attributes.color": "Light Pink"
+            }
+          }
+        }
+      },
+      {
+        "$unwind": "$skus"
+      },
+      {
+        "$match": {
+          "skus.status": "active",
+          "skus.current_price": {
+            "$gte": 50,
+            "$lte": 500
+          },
+          "skus.variant_attributes.color": "Light Pink"
+        }
+      },
+      {
+        "$sort": {
+          "skus.sku_code": 1
+        }
+      },
+      {
+        "$skip": 60
+      },
+      {
+        "$limit": 20
+      }
+    ],
+    "cursor": {},
+    "$db": "dbperf"
+  },
+  "ok": 1,
+  "$clusterTime": {
+    "clusterTime": {
+      "$timestamp": {
+        "t": 1795596711,
+        "i": 10
+      }
+    },
+    "signature": {
+      "hash": {
+        "$binary": {
+          "base64": "q7I4EfMTt7C693GhVuVPuzu7/WM=",
+          "subType": "00"
+        }
+      },
+      "keyId": 7711673673286943000
+    }
+  },
+  "operationTime": {
+    "$timestamp": {
+      "t": 1795596711,
+      "i": 10
+    }
+  }
+}
