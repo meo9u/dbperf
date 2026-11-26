@@ -32,7 +32,7 @@ Proposed layout. Folders marked (planned) don't exist yet. Confirm before creati
 - `queries/` (planned, Phase 4): benchmark queries for both databases, `queries/{mysql,mongodb}/baseline/qN_<name>.{sql,js}`.
 - `infra/k6/`: `Dockerfile` for the custom k6 binary (`dbperf-k6:local`).
 - `benchmark/`: `scenarios/` (k6 scripts, mounted read-only at `/scripts` in the `k6` service; shared parameters in `scenarios/lib/`) and `results/` (mounted writable at `/results`; baseline runs go in `results/baseline/`, load results in `results/<phase>/load/`).
-- `report/` (planned, Phase 6): final report and slides.
+- `report/`: `bao-cao-bai-tap-lon.md` (the full assignment report: Markdown, Vietnamese, no theory chapter, cover page added by the team; figures in `report/figures/`, regenerate with `python3 report/figures/make_figures.py`), `dan-y-bao-cao.md` (its outline) and `bao-cao-tong-hop.md` (short results summary, kept as a source); slides are still to do (Phase 6).
 
 ## Commands
 
@@ -103,7 +103,7 @@ See `docs/PLAN.md`. Goal: measure both databases before any optimization, as the
 
 Deliverables: optimizer theory note (CBO, `EXPLAIN ANALYZE` / `explain("executionStats")`), location to be decided now that `docs/theory/` is gone; the baseline queries (class 1 in `docs/benchmark-operations.md`) per database in `queries/{mysql,mongodb}/baseline/`; load scenarios in `benchmark/scenarios/` with results in `benchmark/results/baseline/`. Baseline means no indexes beyond what the schema requires.
 
-File placement and result format are defined in the last section of `docs/benchmark-operations.md` (class 1: `queries/{mysql,mongodb}/baseline/qN_<name>.{sql,js}` with names `q1_revenue_by_month` … `q5_low_stock_by_warehouse`, results in `benchmark/results/baseline/{mysql,mongodb}/`; class 2: `benchmark/scenarios/<scenario>.<db>.js`). For every `qN` both databases must print the same TSV and `diff` must be empty before anything is timed. "Revenue" counts `delivered` orders only (team assumption, not yet confirmed by the instructor).
+File placement and result format are defined in the last section of `docs/benchmark-operations.md` (class 1: `queries/{mysql,mongodb}/baseline/qN_<name>.{sql,js}` with names `q1_revenue_by_month` … `q5_low_stock_by_warehouse`, results in `benchmark/results/baseline/{mysql,mongodb}/`; class 2: `benchmark/scenarios/<scenario>.<db>.js`). For every `qN` both databases must print the same TSV and `diff` must be empty before anything is timed. "Revenue" counts `delivered` orders only (project assumption).
 
 Two classes of baseline operations; details and open questions in `docs/benchmark-operations.md`. Both classes are chosen; open questions for class 2 are in that file:
 
@@ -142,4 +142,3 @@ Do not build any of the following until the corresponding phase is active:
 - Test framework, linter, formatter for Python.
 - Commit message format (free-form imperative vs Conventional Commits).
 - Directory layout above: confirm or change.
-- Language and format of the final report (Vietnamese/English; Markdown/Word/LaTeX).

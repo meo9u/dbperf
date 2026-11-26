@@ -6,3 +6,6 @@ seed/data/*
 # Python bytecode
 __pycache__/
 *.pyc
+
+# Bỏ qua toàn bộ cài đặt VS Code
+.vscode/

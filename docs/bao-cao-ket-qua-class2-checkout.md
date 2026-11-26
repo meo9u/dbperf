@@ -24,10 +24,10 @@ Thông lượng (checkout hoàn thành mỗi giây) và p95 (ms), baseline hai l
 ## 2. Cách đo
 
 - Mỗi checkout đặt một đơn `pending` kèm thanh toán `pending`, 1–3 dòng hàng lấy từ **đơn mẫu** thật (`benchmark/scenarios/lib/checkout_templates.json`: 500 đơn "nóng" chứa một trong 200 SKU bán nhiều nhất và 500 đơn "nguội", 2.000 khách), 50% checkout dùng đơn nóng để tạo tranh chấp trên cùng hàng tồn kho. Cùng chuỗi yêu cầu cho hai DB (sinh theo VU và số lần lặp).
-- Mỗi checkout là một transaction: tăng `inventory.quantity_reserved` cho từng (SKU, kho), chèn đơn, các dòng hàng và thanh toán. Xung đột (deadlock ở MySQL, `WriteConflict` ở MongoDB) thử lại tối đa 3 lần.
+- Mỗi checkout là một transaction: tăng `inventory.quantity_reserved` cho từng (SKU, kho), chèn đơn, các dòng hàng và thanh toán. Xung đột (deadlock ở MySQL, `WriteConflict` ở MongoDB) làm lại, tối đa 3 lượt thử kể cả lượt đầu.
 - **Cấu hình độ bền và cô lập: mặc định của từng DB.** MySQL: `innodb_flush_log_at_trx_commit=1`, `sync_binlog=1` (binlog bật), REPEATABLE READ. MongoDB: write concern `majority`, read concern `local`, WiredTiger (single-node replica set). Cache mỗi DB 1536 MB, 2 CPU, 4 GB; k6 2 CPU, 2 GB.
 - **Trước mỗi mức tải, dữ liệu được nạp lại từ `seed/data`** (khoảng 40–50 giây mỗi DB, giữ nguyên index, rồi `ANALYZE TABLE`). Sau đó cộng 100.000 vào `quantity_on_hand` của mọi dòng tồn kho ở cả hai DB: không có thao tác này, DB nhanh hơn hoàn thành nhiều checkout hơn và làm cạn các hàng ít tồn kho (tối thiểu 20) sớm hơn (lần chạy thử cho 3.232 lỗi hết hàng ở MongoDB và 7 ở MySQL), nên hai DB không còn làm cùng khối lượng việc. Vì vậy báo cáo này đo thông lượng và tranh chấp khóa, không đo hành vi hết hàng; đường hết hàng đã được kiểm tra riêng (MySQL: `Error 3819 ... Check constraint 'chk_inventory_quantity_reserved' is violated`; MongoDB: `Document failed validation` của validator `inventory`).
-- 45 giây mỗi mức, 4/8/16/32 VU; không chạy 64 VU vì k6 đã dùng ~88% CPU khi chạy MongoDB ở 8 VU và ~81% ở 32 VU. Chẩn đoán CPU: DB chạm trần (MySQL 175–190%, MongoDB 195% trên 200%), k6 thấp hơn (MySQL run 26–43%, MongoDB run 61–88%), nên nghẽn nằm ở DB.
+- 45 giây mỗi mức, 4/8/16/32 VU; không chạy 64 VU vì k6 đã dùng ~88% CPU khi chạy MongoDB ở 8 VU và ~81% ở 32 VU. Chẩn đoán CPU: DB chạm trần (MySQL 175–200%, MongoDB 195% trên 200%), k6 thấp hơn (MySQL run 26–43%, MongoDB run 61–88%), nên nghẽn nằm ở DB.
 - Độ trễ là `iteration_duration` của k6 (một checkout, kể cả các lần thử lại và thời gian chờ giữa các lần).
 
 ## 3. Cơ chế

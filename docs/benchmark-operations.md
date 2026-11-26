@@ -20,7 +20,7 @@ Cập nhật lần cuối: 2026-11-25.
 - Chạy từng truy vấn một mình, lặp nhiều lần, bỏ lần chạy đầu (cache lạnh) hoặc ghi riêng.
 - Tham số (khoảng ngày, danh mục) giống nhau trên hai DB và cố định giữa baseline và optimized.
 - Mỗi cặp truy vấn phải trả kết quả giống hệt nhau trước khi đo (đối chiếu với `seed/checks/`).
-- Định nghĩa "doanh thu" là đơn có `status = 'delivered'`. Đây là giả định của tôi, cần bạn xác nhận.
+- Định nghĩa "doanh thu" là đơn có `status = 'delivered'`. Đây là giả định của đồ án.
 
 ### Lưu ý về dữ liệu
 Bộ dữ liệu đang nạp là `bigdata-final` (1.000.000 đơn, ~3,1 triệu dòng đơn, 321.410 dòng tồn kho, 50.000 khách, 4.000 sản phẩm, 20.000 SKU). Cache mỗi DB là 1536 MB, nhỏ hơn dữ liệu của MySQL (~560 MB dữ liệu + index nằm gọn) nhưng đủ lớn để phần lớn dữ liệu nóng nằm trong cache, nên chênh lệch do I/O đĩa chưa lộ ra. Quy mô vẫn nhỏ hơn mục tiêu 10 triệu đơn; cần ghi hạn chế này vào báo cáo.

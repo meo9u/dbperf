@@ -245,7 +245,7 @@ Nhận xét:
 2. **Tái lập.** Sau rollback, các query khác tái hiện baseline trong khoảng ±8% (`results/rollback_check/`); danh sách index khớp baseline ban đầu.
 3. **Thời gian đo trong phiên DB**, không gồm truyền kết quả qua mạng và khởi động tiến trình. "Lần chạy đầu" không phải cache lạnh thật vì cache đã ấm từ các lần chạy trước.
 4. **Quy mô dữ liệu** (1M đơn) vẫn nhỏ hơn mục tiêu của đề (10M+ đơn). Dữ liệu vừa trong cache 1536 MB, nên chênh lệch do I/O đĩa chưa lộ ra.
-5. **Giả định "doanh thu = chỉ đơn `delivered`"** chưa được giảng viên xác nhận.
+5. **Giả định "doanh thu = chỉ đơn `delivered`"** là giả định của đồ án.
 6. **Dữ liệu có một check FAIL** (`status_payment_consistency`, 562 dòng) giống hệt ở hai DB, nên không làm lệch so sánh.
 7. Các giải thích về *tại sao* (mục 6.3) được suy ra từ plan và số đo; chưa có thí nghiệm riêng tách từng nguyên nhân, trừ việc đo lại `$natural` so với index đã nêu.
 8. Một đợt chạy mỗi cấu hình trên một máy, 11 lần đo; p95 sát p50 (trong ~5–10%) nên độ ổn định tốt, nhưng chưa lặp lại ở nhiều đợt.
